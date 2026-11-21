@@ -57,6 +57,7 @@ jobs:
 
       - name: Export & upload to TestFlight
         run: |
+          set -o pipefail
           BUNDLE_ID=$(printf %s "$BUNDLE_ID" | tr -d '[:space:]'); TEAM_ID=$(printf %s "$TEAM_ID" | tr -d '[:space:]')
           ASC_KEY_ID=$(printf %s "$ASC_KEY_ID" | tr -d '[:space:]'); ASC_ISSUER_ID=$(printf %s "$ASC_ISSUER_ID" | tr -d '[:space:]')
           cat > build/ExportOptions.plist <<PLIST
