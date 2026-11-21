@@ -31,11 +31,24 @@ final class CalculatorTests: XCTestCase {
         assertEur(r.isolatedNettoPraemie, 34_468, "Netto-Prämie")
     }
 
-    func testSprinterSweetSpotPreset() {
+    /// The preset asks for bAV 42.480 €, but the HTML range slider (step 500) snapped it to 42.500 €.
+    /// The app keeps the intended 42.480 €; this test feeds the HTML's effective inputs to prove parity.
+    func testPresetKeepsIntendedBavValue() {
         let model = AppModel(inputs: Inputs())
         model.apply(.sprinterSweet)
+        XCTAssertEqual(model.inputs.bav, 42_480)
         XCTAssertEqual(model.inputs.ruerup, 10_000)
-        let r = model.results
+        XCTAssertTrue(model.inputs.isTurbo)
+        XCTAssertTrue(model.inputs.optEnabled)
+    }
+
+    func testSprinterSweetSpotScenarioMatchesHTML() {
+        var i = Inputs()
+        i.isTurbo = true
+        i.optEnabled = true
+        i.bav = 42_500
+        i.ruerup = 10_000
+        let r = Calculator.compute(i)
         assertEur(r.netVoll, 88_451, "Sofort-Netto")
         assertEur(r.erstattung, 55_334, "FA-Erstattung")
         assertEur(r.netFf, 143_330, "Optimal-Netto")
