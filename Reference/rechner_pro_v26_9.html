@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abfindungs-Optimizer 2027 (Pro v26.9)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #09090b;
+            --bg-card: rgba(24, 24, 27, 0.88);
+            --bg-input: rgba(39, 39, 42, 0.72);
+            --bg-subtle: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.10);
+            --border-strong: rgba(255, 255, 255, 0.18);
+            --text-main: #fafafa;
+            --text-muted: #a1a1aa;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --purple: #a855f7;
+            --cyan: #06b6d4;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        body.light-mode {
+            --bg-main: #f4f4f5;
+            --bg-card: rgba(255, 255, 255, 0.94);
+            --bg-input: #f8fafc;
+            --bg-subtle: rgba(15, 23, 42, 0.03);
+            --border-color: rgba(15, 23, 42, 0.10);
+            --border-strong: rgba(15, 23, 42, 0.20);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --purple: #7c3aed;
+            --cyan: #0891b2;
+            --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 18px;
+            padding-bottom: 72px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.45;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .container { max-width: 1360px; margin: 0 auto; }
+
+        /* Sticky Mobile KPI Bar */
+        .sticky-kpi-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9000;
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border-strong);
+            padding: 8px 16px;
+            display: none;
+            justify-content: space-around;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.35);
+        }
+        @media (max-width: 960px) {
+            .sticky-kpi-bar { display: flex; }
+        }
+        .sticky-kpi-item { text-align: center; }
+        .sticky-kpi-lbl { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .sticky-kpi-val { font-size: 0.92rem; font-weight: 800; }
+
+        /* Header */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+        }
+        .header-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .header-title h1 { margin: 0; font-size: 1.32rem; font-weight: 750; letter-spacing: -0.02em; }
+        .badge-pro {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: #fff;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .badge-ver {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-hdr {
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-hdr:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Preset Strip */
+        .preset-strip {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 14px;
+        }
+        .preset-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-right: 4px; }
+        .btn-preset {
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 11px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-preset:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.12); }
+
+        /* Cards & Grids */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+        }
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .section-head h2 { margin: 0; font-size: 1.02rem; font-weight: 700; }
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+        @media (max-width: 1024px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        .field label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .field input[type="number"], .field select {
+            width: 100%;
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            outline: none;
+        }
+        .field input:focus, .field select:focus { border-color: var(--accent); }
+        .micro-stat { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
+        /* Info button & Popover */
+        .info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            border: 1px solid var(--border-strong);
+            background: var(--bg-subtle);
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-left: 5px;
+            padding: 0;
+        }
+        .info-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        #globalPopover {
+            position: fixed;
+            z-index: 9999;
+            max-width: 390px;
+            background: #18181b;
+            color: #f4f4f5;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            border-radius: 12px;
+            padding: 13px 15px;
+            font-size: 0.8rem;
+            line-height: 1.48;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+            display: none;
+        }
+        body.light-mode #globalPopover {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+        }
+        #globalPopover h4 { margin: 0 0 6px 0; font-size: 0.86rem; color: var(--accent); }
+
+        /* Status / Alert Banners */
+        .status-banner {
+            margin-top: 10px;
+            padding: 9px 12px;
+            border-radius: 9px;
+            border-left: 4px solid var(--accent);
+            background: rgba(59, 130, 246, 0.10);
+            font-size: 0.8rem;
+        }
+
+        /* Collapsible Option Bars (Sprinter, B, C, D) */
+        .option-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 13px 16px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+        }
+        .option-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            cursor: pointer;
+        }
+        .option-check-wrap {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-weight: 700;
+            font-size: 0.94rem;
+        }
+        .option-check-wrap input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        .option-badge {
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+        .option-body { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+
+        /* Sliders in Section B */
+        .slider-card {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 11px;
+            padding: 12px;
+        }
+        .slider-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        .slider-title { font-size: 0.82rem; font-weight: 700; }
+        .slider-val { font-size: 0.86rem; font-weight: 800; color: var(--accent); }
+        .savings-pill {
+            display: none;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+        .upfront-pill {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+            margin: 6px 0;
+        }
+        .erklaerung-bar {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            padding: 5px 9px;
+            border-radius: 7px;
+            background: rgba(16, 185, 129, 0.08);
+            font-size: 0.74rem;
+            color: var(--success);
+            font-weight: 600;
+        }
+        .erklaerung-bar.upfront-bar {
+            background: rgba(59, 130, 246, 0.08);
+            color: var(--accent);
+        }
+        .btn-sweet {
+            background: rgba(16, 185, 129, 0.14);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 7px;
+            padding: 4px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-sweet:hover { background: rgba(16, 185, 129, 0.24); }
+
+        /* KPI Strip */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        @media (max-width: 960px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 540px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 13px 15px;
+            box-shadow: var(--shadow);
+        }
+        .kpi-label { font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .kpi-value { font-size: 1.35rem; font-weight: 800; margin: 4px 0; letter-spacing: -0.02em; }
+        .kpi-sub { font-size: 0.74rem; color: var(--text-muted); }
+
+        /* Charts */
+        .chart-box {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 11px;
+            padding: 12px;
+        }
+        .chart-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+        .chart-canvas-wrap { position: relative; height: 220px; width: 100%; }
+
+        /* Sprinter Bridge 2-col */
+        .sprinter-bridge-grid {
+            display: grid;
+            grid-template-columns: 270px 1fr;
+            gap: 14px;
+            margin-top: 12px;
+            align-items: center;
+        }
+        @media (max-width: 820px) { .sprinter-bridge-grid { grid-template-columns: 1fr; } }
+        .bridge-stack { display: flex; flex-direction: column; gap: 8px; }
+        .bridge-pill {
+            padding: 9px 12px;
+            border-radius: 9px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Collapsible Tables */
+        details.acc-table {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        details.acc-table summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 12px 16px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-subtle);
+        }
+        details.acc-table summary::-webkit-details-marker { display: none; }
+        .table-wrap { padding: 12px 16px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        th { color: var(--text-muted); font-weight: 700; font-size: 0.76rem; }
+        td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+        tr.total-row td { font-weight: 800; border-top: 2px solid var(--border-strong); border-bottom: none; }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.72);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-card {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-strong);
+            border-radius: 14px;
+            max-width: 760px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+
+        /* Print Stylesheet */
+        @media print {
+            body { background: #fff !important; color: #000 !important; padding: 0; }
+            .header-actions, .preset-strip, .info-btn, #globalPopover, input[type="range"], .btn-sweet, .sticky-kpi-bar { display: none !important; }
+            .card, .option-bar, .kpi-card, details.acc-table { box-shadow: none !important; border: 1px solid #cbd5e1 !important; background: #fff !important; color: #000 !important; break-inside: avoid; }
+            details.acc-table { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-title">
+            <h1>Abfindungs-Optimizer 2027</h1>
+            <span class="badge-pro">PRO</span>
+            <span class="badge-ver">v26.9</span>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn-hdr" id="themeToggleBtn" onclick="toggleTheme()">☀️ Hell</button>
+            <button type="button" class="btn-hdr" onclick="openLegalModal()">ℹ️ Rechengrößen & Recht 2027</button>
+            <button type="button" class="btn-hdr" onclick="exportPdfReport()">📄 Report / PDF</button>
+        </div>
+    </div>
+
+    <!-- QUICK SCENARIO PRESETS -->
+    <div class="preset-strip">
+        <span class="preset-label">Schnell-Szenarien:</span>
+        <button type="button" class="btn-preset" onclick="applyPreset('sprinter_sweet')">🚀 Sprinter + Rürup Sweet-Spot</button>
+        <button type="button" class="btn-preset" onclick="applyPreset('runway_check')">🧭 Cash-Burn & Reichweite</button>
+        <button type="button" class="btn-preset" onclick="applyPreset('gehalts_switch')">📉 Gehalts-Switch (Break-Even)</button>
+        <button type="button" class="btn-preset" onclick="applyPreset('reset')">↺ Reset</button>
+    </div>
+
+    <!-- SECTION A: CORE INPUTS -->
+    <div class="card">
+        <div class="section-head">
+            <h2>A. Basis-Parameter & Einkommen 2027</h2>
+            <span class="micro-stat">Annahme: Einmal-Auszahlung in einer Gehaltsabrechnung 2027 (§ 34 EStG Zusammenballung)</span>
+        </div>
+        <div class="grid-4">
+            <div class="field">
+                <label>Reguläres Brutto-Monatsgehalt (€) <button type="button" class="info-btn" data-pop="popAltesGehalt">?</button></label>
+                <input type="number" id="altesMonatsgehalt" value="7000" step="100" oninput="onCoreInputChangeDebounced()">
+                <div class="micro-stat" id="jahresBruttoInfo">Jahresbrutto: 84.000 €</div>
+            </div>
+            <div class="field">
+                <label>Start Frist / Sprinter-Austritt 2027 <button type="button" class="info-btn" data-pop="popStartMonth">?</button></label>
+                <select id="globalStartMonth" onchange="syncStartMonth('global')">
+                    <option value="1">Januar 2027 (0 Mon. Vor-Gehalt)</option>
+                    <option value="2">Februar 2027 (1 Mon. Vor-Gehalt)</option>
+                    <option value="3">März 2027 (2 Mon. Vor-Gehalt)</option>
+                    <option value="4" selected>April 2027 (3 Mon. Vor-Gehalt)</option>
+                    <option value="5">Mai 2027 (4 Mon. Vor-Gehalt)</option>
+                    <option value="6">Juni 2027 (5 Mon. Vor-Gehalt)</option>
+                    <option value="7">Juli 2027 (6 Mon. Vor-Gehalt)</option>
+                    <option value="8">August 2027 (7 Mon. Vor-Gehalt)</option>
+                    <option value="9">September 2027 (8 Mon. Vor-Gehalt)</option>
+                    <option value="10">Oktober 2027 (9 Mon. Vor-Gehalt)</option>
+                    <option value="11">November 2027 (10 Mon. Vor-Gehalt)</option>
+                    <option value="12">Dezember 2027 (11 Mon. Vor-Gehalt)</option>
+                </select>
+                <div class="micro-stat" id="salaryMonths2027Info">Sprinter: 3M Gehalt | Standard: 8M Gehalt</div>
+            </div>
+            <div class="field">
+                <label>Kündigungsfrist (Monate) <button type="button" class="info-btn" data-pop="popFrist">?</button></label>
+                <input type="number" id="fristMonate" value="5" min="0" max="18" step="1" oninput="onCoreInputChangeDebounced()">
+                <div class="micro-stat">Restlaufzeit ab Startmonat</div>
+            </div>
+            <div class="field">
+                <label>Basis-Abfindung (Brutto €) <button type="button" class="info-btn" data-pop="popAbfindung">?</button></label>
+                <input type="number" id="bruttoAbfindung" value="150000" step="1000" oninput="onCoreInputChangeDebounced()">
+                <div class="micro-stat">Ohne Sprinter-Prämie</div>
+            </div>
+            <div class="field">
+                <label>Neues Gehalt 2027 (Brutto €) <button type="button" class="info-btn" data-pop="popNeuesGehalt">?</button></label>
+                <input type="number" id="neuesGehalt" value="0" step="500" oninput="onCoreInputChangeDebounced()">
+                <div class="micro-stat">Nur das Gehalt NACH der Lücke / dem Austritt in 2027 eintragen.</div>
+            </div>
+            <div class="field">
+                <label>Fiktives AG-Jahresgehalt (€) <button type="button" class="info-btn" data-pop="popAgFiktiv">?</button></label>
+                <input type="number" id="agFiktivGehalt" value="84000" step="1000" oninput="berechneAllesDebounced()">
+                <div class="micro-stat">Basis für Lohnsteuer-Einbehalt</div>
+            </div>
+            <div class="field">
+                <label>KV-Zusatzbeitrag (%) & Status <button type="button" class="info-btn" data-pop="popGkvStatus">?</button></label>
+                <div style="display:flex; gap:6px;">
+                    <input type="number" id="sozial" value="2.5" step="0.1" min="0" max="6" style="width:45%;" oninput="berechneAllesDebounced()">
+                    <select id="preExitGkvStatus" style="width:55%;" onchange="berechneAlles()">
+                        <option value="pflicht" selected>Pflicht (§19)</option>
+                        <option value="freiwillig">Freiwillig</option>
+                    </select>
+                </div>
+                <div class="micro-stat" id="gkvHoechstInfo">GKV-Höchstsatz: ~1.320 €/Mo</div>
+            </div>
+            <div class="field">
+                <label>Kinder (Freibetrag) <button type="button" class="info-btn" data-pop="popKinder">?</button></label>
+                <select id="kinderAnzahl" onchange="onKinderChange()">
+                    <option value="0">0 Kinder</option>
+                    <option value="0.5" selected>0,5 (1 Kind geteilt)</option>
+                    <option value="1">1,0 (1 Kind voll)</option>
+                    <option value="1.5">1,5 Kinder</option>
+                    <option value="2">2,0 Kinder</option>
+                    <option value="2.5">2,5 Kinder</option>
+                    <option value="3">3,0 Kinder</option>
+                </select>
+                <div class="micro-stat" id="kinderInfo">KFB: 5.028 € vs. KG: 1.602 €</div>
+            </div>
+        </div>
+
+        <div class="grid-4" style="margin-top:12px;">
+            <div class="field">
+                <label>Steuertarif 2027 <button type="button" class="info-btn" data-pop="popTarif">?</button></label>
+                <select id="tarif" onchange="onCoreInputChange()">
+                    <option value="1" selected>Grundtarif (Einzelveranlagung)</option>
+                    <option value="2">Splittingtarif (Zusammenveranlagung)</option>
+                </select>
+            </div>
+            <div class="field" id="partnerGehaltWrap" style="display:none;">
+                <label>Brutto-Gehalt Partner/in 2027 (€)</label>
+                <input type="number" id="partnerGehalt" value="45000" step="1000" oninput="onCoreInputChangeDebounced()">
+                <div class="micro-stat" id="partnerMaxSplittingInfo">Max. Splitting-Grenze wird berechnet...</div>
+            </div>
+        </div>
+        <div class="status-banner" id="splittingErklaerung" style="display:none;"></div>
+    </div>
+
+    <!-- SPRINTER OPTION BAR -->
+    <div class="option-bar">
+        <div class="option-top" onclick="toggleCheckboxCard('turboToggle', 'turboSection')">
+            <div class="option-check-wrap">
+                <input type="checkbox" id="turboToggle" onclick="event.stopPropagation(); toggleSprinterSection()">
+                <span>🚀 Vorzeitiger Austritt / Sprinter-Option</span>
+            </div>
+            <span class="option-badge" id="sprinterHeaderBadge">Inaktiv (Frist wird regulär abgesessen)</span>
+        </div>
+        <div class="option-body" id="turboSection" style="display:none;">
+            <div class="grid-4">
+                <div class="field">
+                    <label>Sprinter-Faktor (pro Monat) <button type="button" class="info-btn" data-pop="popSprinterFaktor">?</button></label>
+                    <input type="number" id="turboFaktor" value="1.5" step="0.1" min="0" max="5" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat" id="sprinterBruttoInfo">Brutto-Prämie: + 52.500 €</div>
+                </div>
+                <div class="field">
+                    <label>ALG 1 Satz (Auto aus Brutto & Kinder) <button type="button" class="info-btn" data-pop="popAlg1">?</button></label>
+                    <select id="alg1Satz" onchange="berechneAlles()">
+                        <option value="0.67" selected>67 % (mit Kind)</option>
+                        <option value="0.60">60 % (ohne Kind)</option>
+                    </select>
+                    <div class="micro-stat" id="alg1AutoInfo">ALG 1 Netto: ~2.920 €/Mo</div>
+                </div>
+                <div class="field">
+                    <label>ALG-1 Verlust einrechnen?</label>
+                    <div style="display:flex; align-items:center; gap:8px; padding-top:6px;">
+                        <input type="checkbox" id="includeAlg1Loss" onchange="berechneAlles()">
+                        <span style="font-size:0.8rem;">Ja, Anspruch wird voll ausgeschöpft</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Isolierte Netto-Prämie</label>
+                    <div style="font-size:1.1rem; font-weight:800; color:var(--success); padding-top:4px;" id="turboNettoPraemieAnzeige">+ 0 €</div>
+                    <div class="micro-stat">Nach § 34 EStG Fünftelregelung</div>
+                </div>
+            </div>
+            <div class="status-banner" id="vergleichWarning" style="display:none;"></div>
+
+            <!-- Compact 2-Column Sprinter Advantage Bridge with Toggle for Both Stack and Chart -->
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">Sprinter-Bilanz & Wasserfall:</span>
+                <button type="button" class="btn-hdr" onclick="toggleSprinterChart()">📊 Sprinter-Details anzeigen / verbergen</button>
+            </div>
+            <div class="sprinter-bridge-grid" id="sprinterDetailsGrid" style="display:none;">
+                <div class="bridge-stack">
+                    <div class="bridge-pill" style="border-left:4px solid var(--success);">
+                        <span>+ Gewinne (Prämie & Steuer)</span>
+                        <span id="sprinterGainsSum" style="color:var(--success);">+ 0 €</span>
+                    </div>
+                    <div class="bridge-pill" style="border-left:4px solid var(--danger);">
+                        <span>− Kosten (Gehalt, GKV, RV/ALG)</span>
+                        <span id="sprinterLossesSum" style="color:var(--danger);">− 0 €</span>
+                    </div>
+                    <div class="bridge-pill" id="sprinterNetPill" style="border-left:4px solid var(--accent);">
+                        <span>= Echter Sprinter-Vorteil</span>
+                        <span id="sprinterNetSum">0 €</span>
+                    </div>
+                </div>
+                <div class="chart-box" id="sprinterChartBox">
+                    <div class="chart-title"><span>Sprinter-Wasserfall (Netto-Effekt vs. Frist absitzen)</span></div>
+                    <div class="chart-canvas-wrap" style="height:190px;">
+                        <canvas id="chartTurbo"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION B: COLLAPSIBLE TAX OPTIMIZATION -->
+    <div class="option-bar">
+        <div class="option-top" onclick="toggleCheckboxCard('optMasterToggle', 'optSectionBody')">
+            <div class="option-check-wrap">
+                <input type="checkbox" id="optMasterToggle" onclick="event.stopPropagation(); toggleOptSection()">
+                <span>🎯 B. Steuer-Optimierung aktivieren (bAV, DRV V0210, Rürup, PV-IAB)</span>
+            </div>
+            <span class="option-badge" id="optHeaderBadge">Minimiert (0 €)</span>
+        </div>
+        <div class="option-body" id="optSectionBody" style="display:none;">
+            <div class="grid-2">
+                <!-- 1. bAV -->
+                <div class="slider-card">
+                    <div class="slider-top">
+                        <span class="slider-title">1. bAV-Einzahlung (§ 3 Nr. 63 EStG) <button type="button" class="info-btn" data-pop="popBav">?</button></span>
+                        <div>
+                            <span class="savings-pill upfront-pill" id="bavSavingsPill">Sofort-Ersparnis: 0 €</span>
+                            <span class="slider-val" id="bavVal">0 €</span>
+                        </div>
+                    </div>
+                    <input type="range" id="bavSlider" min="0" max="50976" step="500" value="0" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat">Max. 50.976 € (42.480 € Vervielfältiger + 8.496 € 2027-Rahmen, Annahme: 0 € laufende bAV).</div>
+                    <div class="erklaerung-bar upfront-bar" id="bavErklaerung">
+                        <span>🛡️ Sofort-Steuerersparnis (2027 Lohnsteuer-Abzug):</span>
+                        <span><strong id="bErsparnis">0 €</strong> (<span id="bProzent">0 %</span>)</span>
+                    </div>
+                </div>
+
+                <!-- 2. DRV V0210 -->
+                <div class="slider-card">
+                    <div class="slider-top">
+                        <span class="slider-title" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">2. AG-Direktzahlung DRV (§ 187a / V0210) <button type="button" class="info-btn" data-pop="popDrvV0210">?</button> <button type="button" class="btn-sweet" style="margin:0; background:rgba(59, 130, 246, 0.15); color:var(--accent); border-color:rgba(59, 130, 246, 0.3);" onclick="openDrvModal()">🎯 Defizit berechnen</button></span>
+                        <div>
+                            <span class="savings-pill" id="drvSavingsPill">Gesamt-Ersparnis: 0 €</span>
+                            <span class="slider-val" id="drvVal">0 €</span>
+                        </div>
+                    </div>
+                    <input type="range" id="drvSlider" min="0" max="60000" step="500" value="0" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat" id="drvHintLine">50 % steuerfrei (§ 3 Nr. 28 EStG: 0 €) ohne Rürup-Cap-Kürzung; 50 % Fünftelregelung.</div>
+                    <div class="erklaerung-bar" id="drvErklaerung">
+                        <span>💡 Gesamt-Ersparnis (50% Sofort + 50% Fünftel):</span>
+                        <span><strong id="dErsparnis">0 €</strong> (<span id="dProzent">0 %</span>)</span>
+                    </div>
+                </div>
+
+                <!-- 3. Rürup -->
+                <div class="slider-card">
+                    <div class="slider-top">
+                        <span class="slider-title">3. Rürup / Basisrente (§ 10 Abs. 1 Nr. 2 EStG) <button type="button" class="info-btn" data-pop="popRuerup">?</button></span>
+                        <div>
+                            <span class="savings-pill" id="ruerupSavingsPill">FA-Erstattung: 0 €</span>
+                            <span class="slider-val" id="ruerupVal">0 €</span>
+                        </div>
+                    </div>
+                    <input type="range" id="ruerupSlider" min="0" max="32308" step="250" value="0" oninput="berechneAllesDebounced()">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <span class="micro-stat" id="ruerupMaxHint">Max. Cap 2027: 32.308 € (⚠️ Kapital dauerhaft gebunden)</span>
+                        <button type="button" class="btn-sweet" onclick="applyRuerupSweetSpot()">🎯 Cash-Plus Sweet-Spot (&gt;100%): <span id="ruerupSweetVal">0 €</span></button>
+                    </div>
+                    <div class="erklaerung-bar" id="ruerupErklaerung">
+                        <span>💡 Steuer-Erstattung (Okt. 2028 FA):</span>
+                        <span><strong id="rErsparnis">0 €</strong> (<span id="rProzent">0 %</span>)</span>
+                    </div>
+                </div>
+
+                <!-- 4. PV IAB -->
+                <div class="slider-card">
+                    <div class="slider-top">
+                        <span class="slider-title">4. Gewerbl. PV-IAB (§ 7g EStG — 50% Abzug) <button type="button" class="info-btn" data-pop="popIab">?</button></span>
+                        <div>
+                            <span class="savings-pill" id="iabSavingsPill">FA-Erstattung: 0 €</span>
+                            <span class="slider-val" id="iabVal">0 € (Abzug: 0 €)</span>
+                        </div>
+                    </div>
+                    <input type="range" id="iabSlider" min="0" max="400000" step="2000" value="0" oninput="berechneAllesDebounced()">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <span class="micro-stat">Kaufpreis bis 400.000 € &rarr; 50% IAB-Abzug in 2027</span>
+                        <button type="button" class="btn-sweet" onclick="applyIabSweetSpot()">🎯 IAB Sweet-Spot: <span id="optIabInvest">0 €</span> (Abzug: <span id="optIabAbzug">0 €</span>)</button>
+                    </div>
+                    <div class="erklaerung-bar" id="iabErklaerung">
+                        <span>💡 Steuer-Erstattung auf Kaufpreis (Okt. 2028):</span>
+                        <span><strong id="iErsparnis">0 €</strong> (<span id="iProzent">0 %</span>)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE KPI CARDS -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Sofort-Netto Abfindung (2027)</div>
+            <div class="kpi-value" id="resNettoSofort">0 €</div>
+            <div class="kpi-sub" id="resNettoSofortSub">Nach AG-Lohnsteuer-Einbehalt</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Erstattung Finanzamt (Okt. 2028)</div>
+            <div class="kpi-value" style="color:var(--success);" id="resErstattung">+ 0 €</div>
+            <div class="kpi-sub">Durch Fünftelregelung &amp; Steuerhebel</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Optimal-Netto Abfindung</div>
+            <div class="kpi-value" style="color:var(--accent);" id="resNettoOptimal">0 €</div>
+            <div class="kpi-sub" id="resSteuerSatzSub">Effektiver Steuersatz: 0,0 %</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Konto-Cash Ende 2028 (Gesamt)</div>
+            <div class="kpi-value" id="resLiqEnd">0 €</div>
+            <div class="kpi-sub">Inkl. Netto-Gehalt 2027 &amp; FA-Erstattung</div>
+        </div>
+    </div>
+
+    <!-- MAIN 3-CHART ROW -->
+    <div class="grid-3" style="margin-bottom:14px;">
+        <div class="chart-box">
+            <div class="chart-title"><span>1. AG-Abrechnung (Sofort 2027)</span></div>
+            <div class="chart-canvas-wrap"><canvas id="chartAg"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-title"><span>2. Finanzamt-Endabrechnung (2028)</span></div>
+            <div class="chart-canvas-wrap"><canvas id="chartFa"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-title"><span>3. Zusammensetzung FA-Erstattung (Okt. 2028)</span></div>
+            <div class="chart-canvas-wrap"><canvas id="chartErstattung"></canvas></div>
+        </div>
+    </div>
+
+    <!-- COLLAPSIBLE RESULT TABLES -->
+    <details class="acc-table">
+        <summary>
+            <span>📋 Tabelle 1: Arbeitgeber-Auszahlung &amp; Lohnsteuer-Einbehalt (2027)</span>
+            <span id="sumT1" style="color:var(--accent);">Sofort-Netto: 0 €</span>
+        </summary>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Position</th><th class="num">Betrag</th><th>Erläuterung</th></tr></thead>
+                <tbody>
+                    <tr><td>Basis-Abfindung (Brutto)</td><td class="num" id="t1BBase">0 €</td><td>Vertragliche Grundabfindung</td></tr>
+                    <tr><td>+ Sprinter-Prämie (Brutto)</td><td class="num" id="t1BTurbo">+ 0 €</td><td>Vorzeitiger Austritt</td></tr>
+                    <tr><td>= Gesamt-Abfindung (Brutto)</td><td class="num" id="t1BAlt">0 €</td><td>Vor Vorsorge-Abzügen</td></tr>
+                    <tr><td>− bAV-Direktumwandlung (§ 3 Nr. 63)</td><td class="num" id="t1Bav">– 0 €</td><td>100 % steuerfrei (sofortige Lohnsteuer-Ersparnis)</td></tr>
+                    <tr><td>− AG-Direktzahlung DRV (V0210)</td><td class="num" id="t1Drv">– 0 €</td><td>50 % steuerfrei (§ 3 Nr. 28 EStG)</td></tr>
+                    <tr><td>= Steuerpflichtige Bar-Abfindung</td><td class="num" id="t1BNeu">0 €</td><td>Bemessungsgrundlage Lohnsteuer</td></tr>
+                    <tr><td>− Einbehaltene Lohnsteuer + Soli (<span id="rateUpfront">0%</span>)</td><td class="num" id="t1TaxTotal" style="color:var(--danger);">– 0 €</td><td>Ohne Fünftelregelung (Wachstumschancengesetz)</td></tr>
+                    <tr class="total-row"><td>= Sofort-Netto Auszahlung</td><td class="num" id="t1N">0 €</td><td id="t1SofortTurboHint"></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="acc-table">
+        <summary>
+            <span>🏛️ Tabelle 2: Einkommensteuererklärung &amp; Fünftelregelung (Finanzamt 2028)</span>
+            <span id="sumT2" style="color:var(--success);">Optimal-Netto: 0 €</span>
+        </summary>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Position</th><th class="num">Betrag</th><th>Erläuterung</th></tr></thead>
+                <tbody>
+                    <tr><td>Zu versteuerndes Einkommen Basis (zvE_Basis)</td><td class="num" id="t2ZveBase">0 €</td><td>Nach AN-Pauschbetrag, GKV, Rürup &amp; IAB</td></tr>
+                    <tr><td>Steuerpflichtige Abfindung (inkl. 50% DRV V0210)</td><td class="num" id="t2BNeu">0 €</td><td>Bemessung § 34 Abs. 1 EStG</td></tr>
+                    <tr><td>Endgültige Steuer auf Abfindung (<span id="rateFinal">0%</span>)</td><td class="num" id="t2AbfTax" style="color:var(--danger);">– 0 €</td><td>Nach Fünftelregelung &amp; R 34.2 EStR</td></tr>
+                    <tr><td>Erstattung durch Finanzamt (Okt. 2028)</td><td class="num" id="t2Erst" style="color:var(--success);">+ 0 €</td><td>Differenz aus Vorauszahlung und Endsteuer</td></tr>
+                    <tr class="total-row"><td>= Optimal-Netto Abfindung (nach FA)</td><td class="num" id="t2N">0 €</td><td>Realer Netto-Ertrag der Abfindung</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="acc-table">
+        <summary>
+            <span>💶 Tabelle 3: Konto-Liquidität &amp; Vermögensbilanz (2027 &rarr; Ende 2028)</span>
+            <span id="sumT3" style="color:var(--accent);">Konto Ende 2028: 0 €</span>
+        </summary>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Cash-Flow Position</th><th class="num">Betrag</th><th>Zeitpunkt / Hinweis</th></tr></thead>
+                <tbody>
+                    <tr><td>+ Sofort-Netto Abfindung</td><td class="num" id="t3NetAbf">0 €</td><td>Auszahlung 2027</td></tr>
+                    <tr><td>+ Netto-Gehalt 2027 (nach Steuern &amp; SV)</td><td class="num" id="t3NetSal">0 €</td><td>Reguläres Gehalt 2027</td></tr>
+                    <tr><td>− Eigene Rürup-Einzahlung</td><td class="num" id="t3Ruerup">– 0 €</td><td>Cash-Abfluss 2027 (im Altersvorsorge-Topf gebunden)</td></tr>
+                    <tr><td>− PV-IAB Investitions-Abfluss (100% Kaufpreis)</td><td class="num" id="t3Iab">– 0 €</td><td>Hinweis: IAB selbst kostet 2027 0 € Cash (Kauf erst bis 2030)</td></tr>
+                    <tr><td>− Freiwillige GKV/PV in Sprinter-Lücke</td><td class="num" id="t3Gkv">– 0 €</td><td>Selbstzahler-Beiträge (§ 10 EStG absetzbar)</td></tr>
+                    <tr><td>= Konto-Stand am 31.12.2027</td><td class="num" id="t3Liq27">0 €</td><td>Vor FA-Erstattung</td></tr>
+                    <tr><td>+ Finanzamt-Erstattung (Okt. 2028)</td><td class="num" id="t3Erst" style="color:var(--success);">+ 0 €</td><td>Steuerbescheid 2027</td></tr>
+                    <tr class="total-row"><td>= Konto-Stand Ende 2028 (Freie Liquidität)</td><td class="num" id="t3Liq28">0 €</td><td>Ohne gebundenes bAV/DRV/Rürup/PV-Vermögen</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <!-- SECTION C: CASH-BURN & REICHWEITE (COLLAPSIBLE) -->
+    <div class="option-bar">
+        <div class="option-top" onclick="toggleCheckboxCard('runwayToggle', 'runwaySectionBody')">
+            <div class="option-check-wrap">
+                <input type="checkbox" id="runwayToggle" onclick="event.stopPropagation(); toggleRunwaySection()">
+                <span>🧭 C. Cash-Burn &amp; Reichweite (Überleben ohne Job)</span>
+            </div>
+            <span class="option-badge" id="runwayHeaderBadge">Minimiert — Vorschau wird berechnet...</span>
+        </div>
+        <div class="option-body" id="runwaySectionBody" style="display:none;">
+            <div class="grid-4">
+                <div class="field">
+                    <label>Austrittsmonat 2027 (Sync mit A)</label>
+                    <select id="runwayPayoutMonth" onchange="syncStartMonth('runway')">
+                        <option value="1">Januar 2027</option>
+                        <option value="2">Februar 2027</option>
+                        <option value="3">März 2027</option>
+                        <option value="4" selected>April 2027</option>
+                        <option value="5">Mai 2027</option>
+                        <option value="6">Juni 2027</option>
+                        <option value="7">Juli 2027</option>
+                        <option value="8">August 2027</option>
+                        <option value="9">September 2027</option>
+                        <option value="10">Oktober 2027</option>
+                        <option value="11">November 2027</option>
+                        <option value="12">Dezember 2027</option>
+                    </select>
+                    <div class="micro-stat" id="runway2027SalaryInfo">Sprinter: 3M | Standard: 8M</div>
+                </div>
+                <div class="field">
+                    <label>Monatl. Netto-Ausgaben (ohne GKV, €)</label>
+                    <input type="number" id="runwayMonthlyExpenses" value="3500" step="100" min="0" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat">Private Lebenshaltungskosten</div>
+                </div>
+                <div class="field">
+                    <label>Gesamter ALG-1 Anspruch (Monate)</label>
+                    <input type="number" id="runwayAlg1TotalMonths" value="12" min="0" max="24" step="1" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat" id="runwayAlg1EffInfo">Sprinter: 9M (inkl. 3M Sperrzeit) | Std: 12M</div>
+                </div>
+                <div class="field">
+                    <label>Sofort-Abfluss 2027 (€)</label>
+                    <input type="number" id="runwayUpfrontSpend" value="0" step="1000" min="0" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat">Einmalausgabe / Tilgung / Rücklage</div>
+                </div>
+                <div class="field">
+                    <label>GKV-Status nach ALG 1 <button type="button" class="info-btn" data-pop="popRunwayGkvMode">?</button></label>
+                    <select id="runwayGkvMode" onchange="berechneAlles()">
+                        <option value="min" selected>Freiwillig GKV Mindestbeitrag (~280 €/Mo)</option>
+                        <option value="fam">Familienversicherung Partner/in (0 €/Mo)</option>
+                        <option value="custom">Individuell (€/Mo)</option>
+                    </select>
+                    <input type="number" id="runwayCustomGkvVal" value="650" step="50" min="0" style="display:none; margin-top:5px;" oninput="berechneAllesDebounced()">
+                </div>
+                <div class="field">
+                    <label>Real-Zins / Inflation p.a. (%) <button type="button" class="info-btn" data-pop="popRunwayRealReturn">?</button></label>
+                    <input type="number" id="runwayRealReturn" value="0.0" step="0.5" min="-10" max="15" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat">Rendite nach Steuer minus Inflation</div>
+                </div>
+                <div class="field">
+                    <label>Minijob nach Austritt (€/Mo) <button type="button" class="info-btn" data-pop="popRunwayMinijob">?</button></label>
+                    <input type="number" id="runwayMinijobMonthly" value="0" step="50" min="0" max="600" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat" id="runwayMinijobInfo">Steuer- &amp; GKV-frei (während ALG 1 max. 165 € frei)</div>
+                </div>
+                <div class="field">
+                    <label>Gehalts-Überschuss 2027 sparen?</label>
+                    <div style="display:flex; align-items:center; gap:8px; padding-top:6px;">
+                        <input type="checkbox" id="runwayIncludeSalarySavings" checked onchange="berechneAlles()">
+                        <span style="font-size:0.78rem;">Netto-Gehalt minus Ausgaben ansparen</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Rürup in Reichweite optimieren</label>
+                    <div style="display:flex; align-items:center; gap:8px; padding-top:6px;">
+                        <input type="checkbox" id="runwayCapRuerupSweetSpot" checked onchange="berechneAlles()">
+                        <span style="font-size:0.78rem;">Auf &gt;100% Cash-Plus begrenzen</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kpi-grid" style="margin-top:12px;">
+                <div class="kpi-card">
+                    <div class="kpi-label">Reichweite Standard (Frist)</div>
+                    <div class="kpi-value" id="rwStdMonths">0 Mon.</div>
+                    <div class="kpi-sub" id="rwStdDate">Bis —</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Reichweite Sprinter (Sofort)</div>
+                    <div class="kpi-value" style="color:var(--success);" id="rwSprMonths">0 Mon.</div>
+                    <div class="kpi-sub" id="rwSprDate">Bis —</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Strategie-Vergleich (Sprinter vs. Std)</div>
+                    <div class="kpi-value" id="rwDeltaMonths">+ 0 Mon.</div>
+                    <div class="kpi-sub" id="rwDeltaSub">Kalender-Reichweite</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Okt. 2028 FA-Erstattung (Sprinter)</div>
+                    <div class="kpi-value" style="color:var(--accent);" id="rwFaRefund">+ 0 €</div>
+                    <div class="kpi-sub" id="rwBridgeSub">Zwischenfinanzierung: Keine</div>
+                </div>
+            </div>
+
+            <div class="status-banner" id="runwayBridgeWarning" style="display:none;"></div>
+
+            <div class="grid-2" style="margin-top:12px;">
+                <div class="chart-box">
+                    <div class="chart-title"><span>Lebensphasen-Zeitstrahl (Monate ab Jan. 2027)</span></div>
+                    <div class="chart-canvas-wrap"><canvas id="runwayPhaseChart"></canvas></div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title"><span>Konto-Liquiditätsverlauf (€) inkl. Okt. 2028 FA-Sprung</span></div>
+                    <div class="chart-canvas-wrap"><canvas id="runwayCurveChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION D: GEHALTS-SWITCH / BREAK-EVEN RECHNER (STANDARD VS SPRINTER) -->
+    <div class="option-bar">
+        <div class="option-top" onclick="toggleCheckboxCard('crossoverToggle', 'crossoverSectionBody')">
+            <div class="option-check-wrap">
+                <input type="checkbox" id="crossoverToggle" onclick="event.stopPropagation(); toggleCrossoverSection()">
+                <span>📉 D. Gehalts-Switch / Break-Even Rechner (Neuer Job mit weniger Gehalt)</span>
+            </div>
+            <span class="option-badge" id="crossoverHeaderBadge">Minimiert — Vorschau wird berechnet...</span>
+        </div>
+        <div class="option-body" id="crossoverSectionBody" style="display:none;">
+            <div class="grid-4">
+                <div class="field">
+                    <label>Neues Bruttogehalt (€) <button type="button" class="info-btn" data-pop="popCrossoverSalary">?</button></label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="number" id="crossoverNewGross" value="5500" step="100" min="0" style="width:62%;" oninput="berechneAllesDebounced()">
+                        <select id="crossoverPeriod" style="width:38%;" onchange="berechneAlles()">
+                            <option value="month" selected>/ Monat</option>
+                            <option value="year">/ Jahr</option>
+                        </select>
+                    </div>
+                    <div class="micro-stat" id="crossoverNetDiffStat">Monatl. Netto-Einbuße: —</div>
+                </div>
+                <div class="field">
+                    <label>Job-Start (Monate nach Austritt) <button type="button" class="info-btn" data-pop="popCrossoverDelay">?</button></label>
+                    <input type="number" id="crossoverDelayMonths" value="0" min="0" max="36" step="1" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat" id="crossoverStartInfo">0 Mon. = Direkter Wechsel ohne Lücke</div>
+                </div>
+                <div class="field">
+                    <label>Gehaltswachstum p.a. (Alt &amp; Neu %) <button type="button" class="info-btn" data-pop="popCrossoverGrowth">?</button></label>
+                    <input type="number" id="crossoverSalaryGrowth" value="2.0" step="0.5" min="0" max="15" oninput="berechneAllesDebounced()">
+                    <div class="micro-stat">Symmetrisches Wachstum p.a.</div>
+                </div>
+                <div class="field">
+                    <label>Übernommene Parameter (aus C)</label>
+                    <div class="micro-stat" id="crossoverInheritedInfo" style="padding-top:4px;">Austritt, Ausgaben, ALG 1, GKV &amp; Realzins synchronisiert</div>
+                </div>
+            </div>
+
+            <!-- 4-Card Head-to-Head KPI Strip (Standard vs. Sprinter) -->
+            <div class="kpi-grid" style="margin-top:12px;">
+                <div class="kpi-card">
+                    <div class="kpi-label">Monatl. Netto-Einbuße (Alt − Neu)</div>
+                    <div class="kpi-value" style="color:var(--warning);" id="coMonthlyLoss">0 €</div>
+                    <div class="kpi-sub" id="coNetCompareSub">Alt: 0 € vs. Neu: 0 €</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Break-Even Standard (Frist)</div>
+                    <div class="kpi-value" id="coStdBeDate">—</div>
+                    <div class="kpi-sub" id="coStdBeDur">Nach Kündigungsfrist</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Break-Even Sprinter (Sofort)</div>
+                    <div class="kpi-value" style="color:var(--success);" id="coSprBeDate">—</div>
+                    <div class="kpi-sub" id="coSprBeDur">Inkl. Sprinter-Prämie &amp; Fünftel</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Strategie-Vorteil (Sprinter vs. Std)</div>
+                    <div class="kpi-value" style="color:var(--accent);" id="coDeltaBe">+ 0 Mon.</div>
+                    <div class="kpi-sub" id="coCushionSub">Puffer bei Job-Start: 0 €</div>
+                </div>
+            </div>
+
+            <div class="chart-box" id="crossoverChartContainer" style="margin-top:12px;">
+                <div class="chart-title">
+                    <span>Vermögens-Vorsprung vs. Verbleib im alten Job (€) — Standard vs. Sprinter bis Break-Even (0 €)</span>
+                </div>
+                <div class="chart-canvas-wrap" style="height:250px;">
+                    <canvas id="crossoverChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- STICKY MOBILE KPI BAR -->
+<div class="sticky-kpi-bar">
+    <div class="sticky-kpi-item">
+        <div class="sticky-kpi-lbl">Sofort-Netto</div>
+        <div class="sticky-kpi-val" id="stickySofort">0 €</div>
+    </div>
+    <div class="sticky-kpi-item">
+        <div class="sticky-kpi-lbl">FA Okt. 2028</div>
+        <div class="sticky-kpi-val" style="color:var(--success);" id="stickyErst">+ 0 €</div>
+    </div>
+    <div class="sticky-kpi-item">
+        <div class="sticky-kpi-lbl">Optimal-Netto</div>
+        <div class="sticky-kpi-val" style="color:var(--accent);" id="stickyOptimal">0 €</div>
+    </div>
+</div>
+
+<!-- DRV DEFICIT CALCULATOR MODAL -->
+<div class="modal-backdrop" id="drvModal" onclick="if(event.target===this) closeDrvModal()">
+    <div class="modal-card" style="max-width: 500px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; color:var(--accent);">🎯 Rentenpunkte-Defizit Rechner</h3>
+            <button type="button" class="btn-hdr" onclick="closeDrvModal()">✕</button>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0;">Berechnen Sie exakt die Einmalzahlung, die nötig ist, um den lebenslangen Rentenabschlag (z. B. 14,4 % bei 4 Jahren Frührente) komplett auszugleichen.</p>
+        
+        <div class="field" style="margin-bottom:12px;">
+            <label>Bisherige Rentenpunkte (laut Rentenauskunft)</label>
+            <input type="number" id="drvCurrentPoints" value="45" step="1" min="0" oninput="calcDrvDeficit()">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+            <label>Geplanter Rentenabschlag (%)</label>
+            <select id="drvPenalty" onchange="calcDrvDeficit()">
+                <option value="0.036">1 Jahr (3,6 %)</option>
+                <option value="0.072">2 Jahre (7,2 %)</option>
+                <option value="0.108">3 Jahre (10,8 %)</option>
+                <option value="0.144" selected>4 Jahre (14,4 %)</option>
+                <option value="0.18">5 Jahre (18,0 %)</option>
+            </select>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+            <label>Einzahlungsjahr (Kaufpreis pro Punkt)</label>
+            <select id="drvYear" onchange="calcDrvDeficit()">
+                <option value="9661.58">2026 (~9.661 € / Punkt)</option>
+                <option value="9942.07" selected>2027 (~9.942 € / Punkt)</option>
+            </select>
+        </div>
+        
+        <div style="background:rgba(59, 130, 246, 0.1); border-radius:8px; padding:12px; margin-top:16px;">
+            <div style="font-size:0.8rem; color:var(--text-muted);">Erforderlicher Nachkauf:</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--accent);" id="drvMissingPointsOut">0 Punkte</div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">Notwendige Einmalzahlung (V0210):</div>
+            <div style="font-size:1.4rem; font-weight:800; color:var(--text-main);" id="drvCostOut">0 €</div>
+        </div>
+        
+        <button type="button" class="btn-hdr" style="width:100%; margin-top:16px; background:var(--accent); color:#fff; border:none; padding:10px;" onclick="applyDrvDeficit()">In Steuer-Optimierung übernehmen (Sektion B)</button>
+    </div>
+</div>
+
+<!-- POPOVER & LEGAL MODAL -->
+<div id="globalPopover"></div>
+
+<div class="modal-backdrop" id="legalModal" onclick="if(event.target===this) closeLegalModal()">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">ℹ️ Rechengrößen &amp; Steuerrecht 2027</h3>
+            <button type="button" class="btn-hdr" onclick="closeLegalModal()">✕ Schließen</button>
+        </div>
+        <ul style="padding-left:18px; font-size:0.84rem; line-height:1.6;">
+            <li><strong>Einkommensteuertarif 2027 (§ 32a EStG):</strong> Grundfreibetrag <code>12.564 €</code> (Splitting <code>25.128 €</code>), 42%-Zone ab <code>70.600 €</code> (Splitting <code>141.200 €</code>), Reichensteuer 45% ab <code>285.000 €</code>.</li>
+            <li><strong>Fünftelregelung (§ 34 Abs. 1 EStG &amp; R 34.2 EStR):</strong> Seit dem Wachstumschancengesetz wendet der Arbeitgeber die Fünftelregelung nicht mehr im Lohnsteuerabzug an. Die Steuerersparnis wird über die Einkommensteuererklärung 2027 (Erstattung ca. Oktober 2028) realisiert.</li>
+            <li><strong>BBG Sozialversicherung 2027:</strong> RV/ALV <code>106.200 €/Jahr</code> (<code>8.850 €/Mo</code>), KV/PV <code>76.500 €/Jahr</code> (<code>6.375 €/Mo</code>).</li>
+            <li><strong>bAV-Vervielfältiger (§ 3 Nr. 63 EStG):</strong> Bis zu <code>50.976 €</code> (<code>42.480 €</code> + <code>8.496 €</code>) steuer- und sozialversicherungsfrei — die Steuerersparnis erfolgt direkt im Lohnsteuerabzug 2027 (Sofort-Ersparnis).</li>
+            <li><strong>DRV-Ausgleichszahlung (§ 187a SGB VI / Formular V0210):</strong> Direktzahlung durch den Arbeitgeber vor Auszahlung ist zu <code>50 %</code> steuerfrei (§ 3 Nr. 28 EStG) ohne Kürzung des Rürup-Höchstbetrags (<code>32.308 €</code> / <code>64.616 €</code>).</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// 2027 Statutory Constants
+const BBG_RV = 106200;
+const BBG_RV_MONAT = 8850;
+const BBG_KV = 76500;
+const BBG_KV_MONAT = 6375;
+const MAX_BAV = 50976;
+const MAX_ALTERSVORSORGE = 32308;
+const AN_PAUSCHBETRAG = 1430;
+const GKV_MINDEST_BEMESSUNG = 1376.67;
+
+const POPOVERS = {
+    popAltesGehalt: { title: "Reguläres Brutto-Monatsgehalt", text: "Basis für Gehaltsfortzahlung in der Frist, Sprinter-Prämie, RV-Beitragsbemessung und automatische ALG-1-Berechnung (gedeckelt bei BBG-ALV 8.850 €/Mo)." },
+    popStartMonth: { title: "Start Frist / Sprinter-Austritt 2027", text: "Bestimmt die gearbeiteten Monate in 2027 vor dem Stichtag. Beispiel Juni 2027 = 5 Monate Vor-Gehalt (Jan–Mai): Sprinter = 5 Mon. Gehalt; Standard (bei 5 Mon. Frist) = 10 Mon. Gehalt." },
+    popFrist: { title: "Kündigungsfrist / Freistellung", text: "Vertragliche Kündigungsfrist in Monaten. Im Standard-Szenario läuft das Gehalt weiter; im Sprinter-Szenario wird die Frist gegen Abfindungs-Prämie abgekürzt." },
+    popAbfindung: { title: "Basis-Abfindung (Brutto)", text: "Vertragliche Grundabfindung ohne Sprinter-Zuschlag. Muss für § 34 EStG zusammengeballt in einem Kalenderjahr (2027) zufließen." },
+    popNeuesGehalt: { title: "Neues Gehalt 2027 (Brutto)", text: "Nur Brutto-Einkommen aus einem neuen Job eintragen, das NACH dem Austritt bzw. nach der Lücke noch im Kalenderjahr 2027 verdient wird." },
+    popAgFiktiv: { title: "Fiktives AG-Jahresgehalt", text: "Jahresarbeitslohn, den die Lohnbuchhaltung des Arbeitgebers für die Berechnung der Lohnsteuer auf die Abfindung (ohne Fünftelregelung) zugrunde legt." },
+    popGkvStatus: { title: "GKV-Zusatzbeitrag & Status vor Austritt (§ 19 SGB V)", text: "Pflichtversichert: Bei Austritt greift für max. 1 Monat der kostenfreie nachgehende Leistungsanspruch (§ 19 Abs. 2 SGB V) während der Ruhenszeit. Freiwillig versichert: Voluntary GKV/PV (~1.320 €/Mo) fällt ab Tag 1 der Ruhenszeit an." },
+    popKinder: { title: "Kinderfreibetrag vs. Kindergeld (§ 31 EStG)", text: "Das Finanzamt prüft automatisch (Günstigerprüfung), ob 10.056 € Freibetrag (5.028 € je 0,5) inkl. Fünftel-Hebel günstiger sind als 3.204 € Kindergeld. Der Soli sinkt immer auf Basis des Kinderfreibetrags (§ 3 Abs. 2 SolzG)." },
+    popTarif: { title: "Grundtarif vs. Splittingtarif", text: "Bei Zusammenveranlagung verdoppeln sich die Tarifzonen (Grundfreibetrag 25.128 €). Verdient der Partner jedoch hoch, kann die Progression den Fünftel-Vorteil schmälern (Fünftel-Falle)." },
+    popSprinterFaktor: { title: "Sprinter-Faktor", text: "Üblich sind 1,0 bis 1,5 Brutto-Monatsgehälter pro eingespartem Monat der Kündigungsfrist als zusätzliche Abfindung (§ 24 Nr. 1a EStG)." },
+    popAlg1: { title: "Ruhenszeit (§ 158 SGB III) vs. Sperrzeit (§ 159 SGB III)", text: "1) Ruhenszeit (§ 158 SGB III): Bei vorzeitigem Austritt mit Abfindung ruht der ALG-1-Anspruch max. für die abgekürzte Kündigungsfrist (höchstens 1 Jahr) – der Anspruch verschiebt sich nur nach hinten, erfordert aber freiwillige GKV/PV.<br>2) Sperrzeit (§ 159 SGB III): Bei Aufhebungsvertrag ohne wichtigen Grund drohen 12 Wochen (~3 Monate) echte Kürzung." },
+    popBav: { title: "bAV-Direktumwandlung (§ 3 Nr. 63 EStG)", text: "<strong>Upfront Tax Savings:</strong> Bis zu 50.976 € werden vor Lohnsteuerabzug direkt abgezogen, wodurch Sie die Steuerersparnis sofort 2027 im Lohnsteuerabzug realisieren.<br><strong>Reduced Refund Effect:</strong> Da die Steuerlast direkt im Gehalt sinkt, fällt Ihr Oktober 2028 Finanzamt-Erstattungscheck kleiner aus (geringere Fünftelregelung-Basis), aber Ihre Gesamtersparnis über 2027/2028 ist optimal." },
+    popDrvV0210: { title: "AG-Direktzahlung DRV (§ 187a SGB VI / Formular V0210)", text: "<strong>Steuer-Vorteil:</strong> Zahlt der Arbeitgeber den Ausgleichsbetrag direkt an die DRV, sind <strong>50 % sofort steuerfrei (§ 3 Nr. 28 EStG)</strong> ohne Rürup-Cap-Kürzung; die anderen 50 % erhalten die <strong>Fünftelregelung (Erstattung Okt. 2028)</strong>.<br><strong>Ablauf:</strong> 1) Kontenklärung (V0100) &rarr; 2) Antrag V0210 (unter 50 J. mit konkretem Abfindungsangebot) &rarr; 3) Direkte AG-Überweisung vor Auszahlung." },
+    popRuerup: { title: "Rürup / Basisrente (§ 10 Abs. 1 Nr. 2 EStG)", text: "Abzugsfähig bis 32.308 € (Single) bzw. 64.616 € (Splitting) abzüglich der 2027 gezahlten gesetzlichen RV-Beiträge (18,6%). Der Cash-Plus Sweet-Spot senkt zvE_Basis exakt auf 0 € (>100% Steuererstattung)." },
+    popIab: { title: "Gewerblicher PV-IAB (§ 7g EStG)", text: "50 % der geplanten PV-Investition (bis 400.000 € Kaufpreis = 200.000 € Abzug) mindern 2027 zvE_Basis. 2027 fließt noch kein Kaufpreis ab (Anschaffung bis 2030 möglich)." },
+    popRunwayGkvMode: { title: "GKV-Status nach Ende ALG 1", text: "Ohne neuen Job wechseln Sie in die freiwillige GKV/PV. Private Kursgewinne aus Aktien/ETF-Verkäufen zählen laut GKV-Spitzenverband NICHT als beitragspflichtige Einnahmen (Mindestbeitrag ~280 €/Mo). Dividenden, Zinsen und Mieten werden hingegen ab dem 1. Euro verbeitragt." },
+    popRunwayMinijob: { title: "Minijob-Nebenverdienst (Steuer- & GKV-neutral)", text: "Ein pauschalversteuerter <strong>Minijob (bis ca. 556 €/Mo bzw. 2027-Grenze ~568 €/Mo)</strong> wird nicht auf die Einkommensteuer (auch nicht in den Progressionsvorbehalt § 32b EStG) angerechnet und erhöht weder den GKV-Mindestbeitrag (~280 €/Mo) noch gefährdet er die Familienversicherung (590 €-Grenze in 2027).<br><strong>Wichtiger Hinweis (§ 155 SGB III):</strong> Während des <strong>ALG-1-Bezugs</strong> bleiben nur <strong>165 €/Mo</strong> anrechnungsfrei; erst <strong>nach Ende von ALG 1</strong> (Privatiers-Phase) fließt der volle Minijob-Betrag ungekürzt in Ihre monatliche Kasse!" },
+    popRunwayRealReturn: { title: "Real-Zins / Inflation p.a. (%)", text: "Netto-Rendite Ihres angelegten Abfindungs-Kapitals nach Steuern abzüglich Inflation. Ein negativer Wert (z. B. -2,0 %) bedeutet, dass die Inflation höher ist als Ihre Guthabenzinsen und die reale Kaufkraft schrumpft." },
+    popCrossoverSalary: { title: "Neues Bruttogehalt im Gehalts-Switch", text: "Vergleicht den dauerhaften Netto-Verlust (Altes Netto minus Neues Netto) gegen Ihr verbleibendes Netto-Abfindungspolster – getrennt für Standard (Frist absitzen) und Sprinter (Sofort-Austritt)." },
+    popCrossoverDelay: { title: "Job-Start (Monate nach Austritt)", text: "0 Monate = direkter Wechsel ohne Lücke. Bei z. B. 6 Monaten Pause wird die Lücke zwischen altem Gehalt und ALG 1 zunächst vom Abfindungspolster abgezogen." },
+    popCrossoverGrowth: { title: "Symmetrisches Gehaltswachstum p.a. (%)", text: "Wird gleichmäßig auf das alte Vergleichsgehalt und das neue Gehalt angewendet, sodass die absolute Euro-Gehaltslücke realistisch mitwächst." }
+};
+
+let chartAg = null, chartFa = null, chartErstattung = null, chartTurbo = null;
+let runwayPhaseChart = null, runwayCurveChart = null, crossoverChart = null;
+let debounceTimer = null;
+
+function debounce(fn, delay = 150) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(fn, delay);
+}
+
+function berechneAllesDebounced() {
+    debounce(berechneAlles, 150);
+}
+
+function onCoreInputChangeDebounced() {
+    debounce(onCoreInputChange, 150);
+}
+
+function format(val) {
+    const num = Math.round(val || 0);
+    return num.toLocaleString('de-DE') + ' €';
+}
+
+function getMonthLabel(offsetFromJan27) {
+    const names = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    const totalM = Math.max(0, Math.round(offsetFromJan27));
+    const y = 2027 + Math.floor(totalM / 12);
+    const m = totalM % 12;
+    return `${names[m]} ${y}`;
+}
+
+function getESt(zve, spl) {
+    if (zve <= 0) return 0;
+    const x = Math.floor(zve / spl);
+    let est = 0;
+    if (x <= 12564) {
+        est = 0;
+    } else if (x <= 18000) {
+        const y = (x - 12564) / 10000;
+        est = (919.8 * y + 1400) * y;
+    } else if (x <= 70600) {
+        const z = (x - 18000) / 10000;
+        est = (171.1 * z + 2400) * z + 1032.8;
+    } else if (x <= 285000) {
+        est = 0.42 * x - 11260;
+    } else {
+        est = 0.45 * x - 19810;
+    }
+    return Math.floor(est) * spl;
+}
+
+function getSoli(est, spl) {
+    if (est <= 0) return 0;
+    const fg = 19450 * spl;
+    if (est <= fg) return 0;
+    return Math.min((est - fg) * 0.119, est * 0.055);
+}
+
+function getEffectiveZveAfterKinder(rawZve, spl, kinderCount, applyFuenftel, abfAmount, progIncome) {
+    const kfbTotal = kinderCount * 10056;
+    const kgTotal = kinderCount * 3204;
+
+    function calcTaxWithProg(baseZve, abf) {
+        if (abf <= 0 && progIncome <= 0) {
+            return getESt(baseZve, spl);
+        }
+        const fifthAbf = applyFuenftel ? (abf / 5) : abf;
+        const mult = applyFuenftel ? 5 : 1;
+        if (progIncome <= 0) {
+            const tBase = getESt(baseZve, spl);
+            const tFull = getESt(baseZve + fifthAbf, spl);
+            return tBase + mult * Math.max(0, tFull - tBase);
+        } else {
+            const refIncome = baseZve + fifthAbf + progIncome;
+            const rate = refIncome > 0 ? (getESt(refIncome, spl) / refIncome) : 0;
+            const tBaseProg = Math.round(Math.max(0, baseZve) * rate);
+            const tFullProg = Math.round(Math.max(0, baseZve + fifthAbf) * rate);
+            return tBaseProg + mult * Math.max(0, tFullProg - tBaseProg);
+        }
+    }
+
+    const estNoKfb = calcTaxWithProg(rawZve, abfAmount);
+    const estWithKfb = calcTaxWithProg(rawZve - kfbTotal, abfAmount);
+    const soli = getSoli(estWithKfb, spl);
+
+    if (kinderCount > 0 && (estNoKfb - estWithKfb) > kgTotal) {
+        return { est: estWithKfb, soli: soli, total: estWithKfb + soli, kfbWon: true };
+    } else {
+        return { est: estNoKfb, soli: soli, total: estNoKfb + soli, kfbWon: false };
+    }
+}
+
+function calculateTotalTax(zveBasis, spl, applyFuenftel, taxableAbf, kinderCount = 0, progIncome = 0) {
+    return getEffectiveZveAfterKinder(zveBasis, spl, kinderCount, applyFuenftel, taxableAbf, progIncome);
+}
+
+function getEmploymentZve(grossSalary, zb, kinderCount) {
+    if (grossSalary <= 0) return 0;
+    const pausch = Math.min(grossSalary, AN_PAUSCHBETRAG);
+    const rvBasis = Math.min(grossSalary, BBG_RV);
+    const kvBasis = Math.min(grossSalary, BBG_KV);
+    const pvRate = kinderCount > 0 ? 0.024 - Math.min(4, Math.max(0, Math.ceil(kinderCount) - 1)) * 0.0025 : 0.030;
+    const vorsorge = (rvBasis * 0.093) + (kvBasis * (0.073 + (zb / 200) + pvRate));
+    return Math.max(0, grossSalary - pausch - vorsorge);
+}
+
+function getSozAbzug(grossSalary, zb, kinderCount) {
+    if (grossSalary <= 0) return 0;
+    const rvAlvBasis = Math.min(grossSalary, BBG_RV);
+    const kvBasis = Math.min(grossSalary, BBG_KV);
+    const pvRate = kinderCount > 0 ? 0.024 - Math.min(4, Math.max(0, Math.ceil(kinderCount) - 1)) * 0.0025 : 0.030;
+    return rvAlvBasis * (0.093 + 0.013) + kvBasis * (0.073 + (zb / 200) + pvRate);
+}
+
+function getGkvHoechstsatzMonat(zb) {
+    return BBG_KV_MONAT * (0.146 + (zb / 100) + 0.036);
+}
+
+function getGkvMindestMonat(zb, kinderCount) {
+    const pvRate = kinderCount > 0 ? 0.036 : 0.042;
+    return GKV_MINDEST_BEMESSUNG * (0.146 + (zb / 100) + pvRate);
+}
+
+function berechneAutoAlg1(monthlyGross, alg1Satz, kinderCount) {
+    const bemessung = Math.min(monthlyGross, BBG_RV_MONAT);
+    const pauschalSv = bemessung * 0.20;
+    const lohnsteuerMonat = getESt(Math.max(0, (bemessung - pauschalSv) * 12 - AN_PAUSCHBETRAG), 1) / 12;
+    const leistungEntgelt = Math.max(0, bemessung - pauschalSv - lohnsteuerMonat);
+    return Math.round(leistungEntgelt * alg1Satz);
+}
+
+function findMaxPartnerGrossForSplitting(userZve, taxableAbf, kinderCount, zb) {
+    let low = 0, high = 250000, best = 0;
+    for (let iter = 0; iter < 28; iter++) {
+        const mid = (low + high) / 2;
+        const pZve = getEmploymentZve(mid, zb, kinderCount);
+        const tSplit = calculateTotalTax(userZve + pZve, 2, true, taxableAbf, kinderCount, 0).total;
+        const tSingle = calculateTotalTax(userZve, 1, true, taxableAbf, kinderCount, 0).total + calculateTotalTax(pZve, 1, false, 0, kinderCount, 0).total;
+        if (tSplit <= tSingle) {
+            best = mid;
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+    return Math.round(best / 100) * 100;
+}
+
+// UI Helpers
+
+function toggleSprinterChart() {
+    const grid = document.getElementById('sprinterDetailsGrid');
+    if (grid.style.display === 'none') {
+        grid.style.display = 'grid';
+    } else {
+        grid.style.display = 'none';
+    }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    document.getElementById('themeToggleBtn').innerText = isLight ? '🌙 Dunkel' : '☀️ Hell';
+    localStorage.setItem('abfindungs_optimizer_theme', isLight ? 'light' : 'dark');
+    berechneAlles();
+}
+
+function openLegalModal() { document.getElementById('legalModal').style.display = 'flex'; }
+function closeLegalModal() { document.getElementById('legalModal').style.display = 'none'; }
+function exportPdfReport() {
+    document.querySelectorAll('details.acc-table').forEach(d => d.open = true);
+    window.print();
+}
+
+function toggleCheckboxCard(chkId, bodyId) {
+    const chk = document.getElementById(chkId);
+    chk.checked = !chk.checked;
+    if (chkId === 'turboToggle') toggleSprinterSection();
+    else if (chkId === 'optMasterToggle') toggleOptSection();
+    else if (chkId === 'runwayToggle') toggleRunwaySection();
+    else if (chkId === 'crossoverToggle') toggleCrossoverSection();
+}
+
+function toggleSprinterSection() {
+    const on = document.getElementById('turboToggle').checked;
+    document.getElementById('turboSection').style.display = on ? 'block' : 'none';
+    berechneAlles();
+}
+
+function toggleOptSection() {
+    const on = document.getElementById('optMasterToggle').checked;
+    document.getElementById('optSectionBody').style.display = on ? 'block' : 'none';
+    if (!on) {
+        document.getElementById('bavSlider').value = 0;
+        document.getElementById('drvSlider').value = 0;
+        document.getElementById('ruerupSlider').value = 0;
+        document.getElementById('iabSlider').value = 0;
+    }
+    berechneAlles();
+}
+
+function toggleRunwaySection() {
+    const on = document.getElementById('runwayToggle').checked;
+    document.getElementById('runwaySectionBody').style.display = on ? 'block' : 'none';
+    berechneAlles();
+}
+
+function toggleCrossoverSection() {
+    const on = document.getElementById('crossoverToggle').checked;
+    document.getElementById('crossoverSectionBody').style.display = on ? 'block' : 'none';
+    berechneAlles();
+}
+
+function syncStartMonth(source) {
+    const gSel = document.getElementById('globalStartMonth');
+    const rSel = document.getElementById('runwayPayoutMonth');
+    if (source === 'global') rSel.value = gSel.value;
+    else gSel.value = rSel.value;
+    onCoreInputChange();
+}
+
+function onKinderChange() {
+    const k = parseFloat(document.getElementById('kinderAnzahl').value) || 0;
+    document.getElementById('alg1Satz').value = k > 0 ? '0.67' : '0.60';
+    onCoreInputChange();
+}
+
+function onCoreInputChange() {
+    const spl = parseInt(document.getElementById('tarif').value) || 1;
+    document.getElementById('partnerGehaltWrap').style.display = spl === 2 ? 'block' : 'none';
+    berechneAlles();
+}
+
+let currentRuerupSweetSpot = 0;
+let currentIabSweetSpotInvest = 0;
+
+function applyRuerupSweetSpot() {
+    document.getElementById('optMasterToggle').checked = true;
+    document.getElementById('optSectionBody').style.display = 'block';
+    document.getElementById('ruerupSlider').value = currentRuerupSweetSpot;
+    berechneAlles();
+}
+
+function applyIabSweetSpot() {
+    document.getElementById('optMasterToggle').checked = true;
+    document.getElementById('optSectionBody').style.display = 'block';
+    document.getElementById('iabSlider').value = Math.min(400000, currentIabSweetSpotInvest);
+    berechneAlles();
+}
+
+function applyPreset(mode) {
+    if (mode === 'reset') {
+        document.getElementById('altesMonatsgehalt').value = 7000;
+        document.getElementById('globalStartMonth').value = 4;
+        document.getElementById('runwayPayoutMonth').value = 4;
+        document.getElementById('fristMonate').value = 5;
+        document.getElementById('bruttoAbfindung').value = 150000;
+        document.getElementById('neuesGehalt').value = 0;
+        document.getElementById('agFiktivGehalt').value = 84000;
+        document.getElementById('sozial').value = 2.5;
+        document.getElementById('preExitGkvStatus').value = 'pflicht';
+        document.getElementById('kinderAnzahl').value = '0.5';
+        document.getElementById('tarif').value = '1';
+        document.getElementById('turboToggle').checked = false;
+        document.getElementById('turboSection').style.display = 'none';
+        document.getElementById('optMasterToggle').checked = false;
+        document.getElementById('optSectionBody').style.display = 'none';
+        document.getElementById('bavSlider').value = 0;
+        document.getElementById('drvSlider').value = 0;
+        document.getElementById('ruerupSlider').value = 0;
+        document.getElementById('iabSlider').value = 0;
+        document.getElementById('runwayToggle').checked = false;
+        document.getElementById('runwaySectionBody').style.display = 'none';
+        document.getElementById('runwayMinijobMonthly').value = 0;
+        document.getElementById('crossoverToggle').checked = false;
+        document.getElementById('crossoverSectionBody').style.display = 'none';
+        onCoreInputChange();
+        return;
+    }
+
+    document.getElementById('iabSlider').value = 0;
+    document.getElementById('neuesGehalt').value = 0;
+
+    if (mode === 'sprinter_sweet') {
+        document.getElementById('turboToggle').checked = true;
+        document.getElementById('turboSection').style.display = 'block';
+        document.getElementById('optMasterToggle').checked = true;
+        document.getElementById('optSectionBody').style.display = 'block';
+        document.getElementById('bavSlider').value = 42480;
+        berechneAlles();
+        document.getElementById('ruerupSlider').value = currentRuerupSweetSpot;
+        berechneAlles();
+    } else if (mode === 'runway_check') {
+        document.getElementById('turboToggle').checked = true;
+        document.getElementById('turboSection').style.display = 'block';
+        document.getElementById('optMasterToggle').checked = false;
+        document.getElementById('optSectionBody').style.display = 'none';
+        document.getElementById('bavSlider').value = 0;
+        document.getElementById('drvSlider').value = 0;
+        document.getElementById('ruerupSlider').value = 0;
+        document.getElementById('runwayToggle').checked = true;
+        document.getElementById('runwaySectionBody').style.display = 'block';
+        berechneAlles();
+    } else if (mode === 'gehalts_switch') {
+        document.getElementById('turboToggle').checked = true;
+        document.getElementById('turboSection').style.display = 'block';
+        document.getElementById('crossoverToggle').checked = true;
+        document.getElementById('crossoverSectionBody').style.display = 'block';
+        berechneAlles();
+    }
+}
+
+function getChartTheme() {
+    const isLight = document.body.classList.contains('light-mode');
+    return {
+        textColor: isLight ? '#334155' : '#cbd5e1',
+        gridColor: isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.08)'
+    };
+}
+
+function berechneAlles() {
+    const altesMonatsgehalt = Math.max(0, parseFloat(document.getElementById('altesMonatsgehalt').value) || 0);
+    const startMonth = parseInt(document.getElementById('globalStartMonth').value) || 4;
+    const preMonths = Math.max(0, startMonth - 1);
+    const fristMonate = Math.max(0, parseInt(document.getElementById('fristMonate').value) || 0);
+    const abf_noTurbo = Math.max(0, parseFloat(document.getElementById('bruttoAbfindung').value) || 0);
+    const neuesGehalt = Math.max(0, parseFloat(document.getElementById('neuesGehalt').value) || 0);
+    const agFiktiv = Math.max(0, parseFloat(document.getElementById('agFiktivGehalt').value) || 0);
+    const zb = Math.max(0, parseFloat(document.getElementById('sozial').value) || 0);
+    const preExitGkvStatus = document.getElementById('preExitGkvStatus').value;
+    const kinderCount = parseFloat(document.getElementById('kinderAnzahl').value) || 0;
+    const spl = parseInt(document.getElementById('tarif').value) || 1;
+    const pGehalt = spl === 2 ? Math.max(0, parseFloat(document.getElementById('partnerGehalt').value) || 0) : 0;
+
+    const isTurbo = document.getElementById('turboToggle').checked;
+    const turboFaktor = Math.max(0, parseFloat(document.getElementById('turboFaktor').value) || 0);
+    const alg1Satz = parseFloat(document.getElementById('alg1Satz').value) || 0.60;
+    const includeAlg1Loss = document.getElementById('includeAlg1Loss').checked;
+
+    const gkvHoechstsatzMonat = getGkvHoechstsatzMonat(zb);
+    const gkvMinMonat = getGkvMindestMonat(zb, kinderCount);
+    const alg1Monat = berechneAutoAlg1(altesMonatsgehalt, alg1Satz, kinderCount);
+
+    document.getElementById('jahresBruttoInfo').innerText = `Jahresbrutto: ${format(altesMonatsgehalt * 12)}`;
+    document.getElementById('gkvHoechstInfo').innerText = `GKV-Höchstsatz: ~${format(gkvHoechstsatzMonat)}/Mo`;
+    document.getElementById('kinderInfo').innerText = `KFB: ${format(kinderCount * 10056)} vs. KG: ${format(kinderCount * 3204)}`;
+    document.getElementById('alg1AutoInfo').innerText = `ALG 1 Netto: ~${format(alg1Monat)}/Mo`;
+
+    const salMonthsStd2027 = Math.min(12, preMonths + fristMonate);
+    const salMonthsSpr2027 = preMonths;
+    document.getElementById('salaryMonths2027Info').innerText = `Sprinter: ${salMonthsSpr2027}M Gehalt | Standard: ${salMonthsStd2027}M Gehalt`;
+    document.getElementById('runway2027SalaryInfo').innerText = `Sprinter: ${salMonthsSpr2027}M | Standard: ${salMonthsStd2027}M`;
+
+    const bg_noTurbo = (salMonthsStd2027 * altesMonatsgehalt) + neuesGehalt;
+    const bg_Turbo = (salMonthsSpr2027 * altesMonatsgehalt) + neuesGehalt;
+    const bg = isTurbo ? bg_Turbo : bg_noTurbo;
+
+    const praemieBrutto = isTurbo ? (fristMonate * altesMonatsgehalt * turboFaktor) : 0;
+    document.getElementById('sprinterBruttoInfo').innerText = `Brutto-Prämie: + ${format(fristMonate * altesMonatsgehalt * turboFaktor)}`;
+    const effectiveAbfindung = abf_noTurbo + praemieBrutto;
+
+    const rvSalaryActive = isTurbo ? bg_Turbo : bg_noTurbo;
+    let maxRuerup = Math.max(0, (MAX_ALTERSVORSORGE * spl) - (Math.min(rvSalaryActive, BBG_RV) * 0.186) - (spl === 2 ? Math.min(pGehalt, BBG_RV) * 0.186 : 0));
+    const ruerupSlider = document.getElementById('ruerupSlider');
+    ruerupSlider.max = Math.round(maxRuerup);
+    if (parseFloat(ruerupSlider.value) > maxRuerup) ruerupSlider.value = Math.round(maxRuerup);
+    document.getElementById('ruerupMaxHint').innerText = `Max. Cap 2027: ${format(maxRuerup)} (⚠️ Kapital dauerhaft gebunden)`;
+
+    const optEnabled = document.getElementById('optMasterToggle').checked;
+    const bav = optEnabled ? Math.min(effectiveAbfindung, parseFloat(document.getElementById('bavSlider').value) || 0) : 0;
+    const drvRaw = optEnabled ? Math.min(Math.max(0, effectiveAbfindung - bav), parseFloat(document.getElementById('drvSlider').value) || 0) : 0;
+    const ruerup = optEnabled ? Math.min(maxRuerup, parseFloat(ruerupSlider.value) || 0) : 0;
+    const iabInvest = optEnabled ? (parseFloat(document.getElementById('iabSlider').value) || 0) : 0;
+    const iab = iabInvest * 0.5;
+
+    const drvTaxFree = drvRaw * 0.5;
+    const drvTaxable = drvRaw * 0.5;
+    const barBruttoCash = Math.max(0, effectiveAbfindung - bav - drvRaw);
+    const barBruttoTaxable = Math.max(0, effectiveAbfindung - bav - drvTaxFree);
+
+    document.getElementById('bavVal').innerText = format(bav);
+    document.getElementById('drvVal').innerText = format(drvRaw);
+    document.getElementById('drvHintLine').innerText = `50 % steuerfrei (§ 3 Nr. 28 EStG: ${format(drvTaxFree)}) ohne Rürup-Cap-Kürzung; 50 % Fünftelregelung.`;
+    document.getElementById('ruerupVal').innerText = format(ruerup);
+    document.getElementById('iabVal').innerText = `${format(iabInvest)} (Abzug: ${format(iab)})`;
+
+    const totalOptVol = bav + drvRaw + ruerup + iabInvest;
+    document.getElementById('optHeaderBadge').innerText = optEnabled ? `Aktiv (${format(totalOptVol)})` : 'Minimiert (0 €)';
+
+    const dynamicRuhensMonate = Math.min(12, fristMonate, Math.ceil((0.45 * effectiveAbfindung) / Math.max(1, altesMonatsgehalt)));
+    const ruhensIn2027 = isTurbo ? Math.min(dynamicRuhensMonate, Math.max(0, 12 - salMonthsSpr2027)) : 0;
+    const freeGkvGrace = (isTurbo && preExitGkvStatus === 'pflicht' && ruhensIn2027 > 0) ? 1 : 0;
+    const payableGkvMonths2027 = Math.max(0, ruhensIn2027 - freeGkvGrace);
+    const gkvPenalty2027 = payableGkvMonths2027 * gkvHoechstsatzMonat;
+
+    const rvLossTotal = isTurbo ? (fristMonate * Math.min(altesMonatsgehalt, BBG_RV_MONAT) * 0.186) : 0;
+    const alg1LossTotal = (isTurbo && includeAlg1Loss) ? (Math.min(3, fristMonate) * alg1Monat) : 0;
+
+    const soz_noTurbo = getSozAbzug(bg_noTurbo, zb, kinderCount);
+    const barBrutto_noTurbo = Math.max(0, abf_noTurbo - bav - drvTaxFree);
+    let partnerZveBasis = spl === 2 ? getEmploymentZve(pGehalt, zb, kinderCount) : 0;
+    let zveBasis_noTurbo = getEmploymentZve(bg_noTurbo, zb, kinderCount) + partnerZveBasis;
+    const tax_noTurbo = calculateTotalTax(zveBasis_noTurbo - iab - ruerup, spl, true, barBrutto_noTurbo, kinderCount, 0).total;
+    const wealth_noTurbo = (bg_noTurbo - soz_noTurbo) + Math.max(0, abf_noTurbo - bav - drvRaw) - tax_noTurbo;
+
+    const soz_regular = getSozAbzug(bg, zb, kinderCount);
+    let zveBasis_Active = getEmploymentZve(bg, zb, kinderCount) - gkvPenalty2027 + partnerZveBasis;
+    let zve_after_all_Active = zveBasis_Active - iab - ruerup;
+    const T3 = calculateTotalTax(zve_after_all_Active, spl, true, barBruttoTaxable, kinderCount, 0).total;
+
+    currentRuerupSweetSpot = Math.round(Math.min(maxRuerup, Math.max(0, zveBasis_Active - iab)));
+    document.getElementById('ruerupSweetVal').innerText = format(currentRuerupSweetSpot);
+    const remBeforeIab = Math.max(0, zveBasis_Active - ruerup);
+    currentIabSweetSpotInvest = Math.round(remBeforeIab * 2);
+    document.getElementById('optIabAbzug').innerText = format(remBeforeIab);
+    document.getElementById('optIabInvest').innerText = format(currentIabSweetSpotInvest);
+
+    const ruhensSim2027 = Math.min(dynamicRuhensMonate, Math.max(0, 12 - salMonthsSpr2027));
+    const graceSim = (preExitGkvStatus === 'pflicht' && ruhensSim2027 > 0) ? 1 : 0;
+    const gkv_turbo_sim = Math.max(0, ruhensSim2027 - graceSim) * gkvHoechstsatzMonat;
+    let zveBasis_TurboSim = getEmploymentZve(bg_Turbo, zb, kinderCount) - gkv_turbo_sim + partnerZveBasis;
+    let zve_after_all_TurboSim = zveBasis_TurboSim - iab - ruerup;
+
+    const taxSalary_noTurbo = calculateTotalTax(getEmploymentZve(bg_noTurbo, zb, kinderCount) + partnerZveBasis, spl, false, 0, kinderCount, 0).total;
+    const taxSalary_Turbo = calculateTotalTax(getEmploymentZve(bg_Turbo, zb, kinderCount) + partnerZveBasis, spl, false, 0, kinderCount, 0).total;
+    const netSalary_noTurbo = bg_noTurbo - soz_noTurbo - taxSalary_noTurbo;
+    const netSalary_Turbo = bg_Turbo - getSozAbzug(bg_Turbo, zb, kinderCount) - taxSalary_Turbo;
+    const lost_net_salary = Math.max(0, netSalary_noTurbo - netSalary_Turbo);
+
+    const taxTotal_Turbo_BaseAbf = calculateTotalTax(zve_after_all_TurboSim, spl, true, barBrutto_noTurbo, kinderCount, 0).total;
+    const wealth_Turbo_BaseAbf = (bg_Turbo - getSozAbzug(bg_Turbo, zb, kinderCount)) + Math.max(0, abf_noTurbo - bav - drvRaw) - taxTotal_Turbo_BaseAbf;
+    const pure_fuenftel_advantage = Math.max(0, (wealth_Turbo_BaseAbf - wealth_noTurbo) + lost_net_salary);
+
+    const fullTurboAbf = abf_noTurbo + (fristMonate * altesMonatsgehalt * turboFaktor);
+    const barBrutto_FullTurboTax = Math.max(0, fullTurboAbf - bav - drvTaxFree);
+    const taxTotal_Turbo_FullAbf = calculateTotalTax(zve_after_all_TurboSim, spl, true, barBrutto_FullTurboTax, kinderCount, 0).total;
+    const extra_tax_on_premium = Math.max(0, taxTotal_Turbo_FullAbf - taxTotal_Turbo_BaseAbf);
+    const isolated_netto_praemie = Math.max(0, (fullTurboAbf - abf_noTurbo) - extra_tax_on_premium);
+
+    document.getElementById('turboNettoPraemieAnzeige').innerText = "+ " + format(isolated_netto_praemie);
+
+    const rvSim = fristMonate * Math.min(altesMonatsgehalt, BBG_RV_MONAT) * 0.186;
+    const alg1Sim = includeAlg1Loss ? (Math.min(3, fristMonate) * alg1Monat) : 0;
+    const sprinterGains = isolated_netto_praemie + pure_fuenftel_advantage;
+    const sprinterLosses = lost_net_salary + gkv_turbo_sim + rvSim + alg1Sim;
+    const sprinterNetDiff = sprinterGains - sprinterLosses;
+
+    document.getElementById('sprinterGainsSum').innerText = "+ " + format(sprinterGains);
+    document.getElementById('sprinterLossesSum').innerText = "− " + format(sprinterLosses);
+    document.getElementById('sprinterNetSum').innerText = (sprinterNetDiff >= 0 ? "+ " : "− ") + format(Math.abs(sprinterNetDiff));
+    document.getElementById('sprinterNetSum').style.color = sprinterNetDiff >= 0 ? "var(--success)" : "var(--danger)";
+    document.getElementById('sprinterNetPill').style.borderLeftColor = sprinterNetDiff >= 0 ? "var(--success)" : "var(--danger)";
+    document.getElementById('sprinterHeaderBadge').innerText = isTurbo
+        ? `Aktiv (${sprinterNetDiff >= 0 ? '+' : '−'}${format(Math.abs(sprinterNetDiff))} Netto-Bilanz)`
+        : 'Inaktiv (Frist wird regulär abgesessen)';
+
+    if (isTurbo) {
+        const warnBox = document.getElementById('vergleichWarning');
+        warnBox.style.display = 'block';
+        if (sprinterNetDiff >= 0) {
+            warnBox.style.borderLeftColor = "var(--success)";
+            warnBox.style.backgroundColor = "rgba(16, 185, 129, 0.10)";
+            warnBox.innerHTML = `✅ <strong>Sprinter-Vorteil (+ ${format(sprinterNetDiff)}):</strong> Netto-Prämie (+ ${format(isolated_netto_praemie)}) &amp; Steuer-Hebel (+ ${format(pure_fuenftel_advantage)}) überkompensieren Gehaltsverlust &amp; Abzüge.`;
+        } else {
+            warnBox.style.borderLeftColor = "var(--danger)";
+            warnBox.style.backgroundColor = "rgba(239, 68, 68, 0.10)";
+            warnBox.innerHTML = `⚠️ <strong>Sprinter-Nachteil (− ${format(Math.abs(sprinterNetDiff))}):</strong> Gehaltsverlust &amp; Abzüge übersteigen Prämie &amp; Steuer-Hebel.`;
+        }
+    } else {
+        document.getElementById('vergleichWarning').style.display = 'none';
+    }
+
+    // 4. Employer Payroll Withholding & Finanzamt 2028
+    const agZveBasis = getEmploymentZve(agFiktiv, zb, kinderCount) + partnerZveBasis;
+    const taxG_Chef = calculateTotalTax(agZveBasis, spl, false, 0, kinderCount, 0).total;
+    const taxVoll_Chef = calculateTotalTax(agZveBasis + barBruttoTaxable, spl, false, 0, kinderCount, 0).total;
+    const einbehaltenTotal = Math.max(0, taxVoll_Chef - taxG_Chef);
+    const netVoll = Math.max(0, barBruttoCash - einbehaltenTotal);
+    const rateUpfront = barBruttoTaxable > 0 ? (einbehaltenTotal / barBruttoTaxable) * 100 : 0;
+
+    // Upfront Payroll Tax Savings from bAV (100%) and DRV (50%)
+    const taxChef_NoBavDrv = calculateTotalTax(agZveBasis + effectiveAbfindung, spl, false, 0, kinderCount, 0).total;
+    const upfrontSaved_BavDrv = Math.max(0, taxChef_NoBavDrv - taxVoll_Chef);
+    const upfrontSaved_Bav = (bav + drvTaxFree) > 0 ? upfrontSaved_BavDrv * (bav / (bav + drvTaxFree)) : 0;
+    const upfrontSaved_Drv = (bav + drvTaxFree) > 0 ? upfrontSaved_BavDrv * (drvTaxFree / (bav + drvTaxFree)) : 0;
+
+    const taxPaidOnBase_Payroll = calculateTotalTax(getEmploymentZve(bg, zb, kinderCount) + partnerZveBasis, spl, false, 0, kinderCount, 0).total;
+    const netGehaltBase = bg - soz_regular - taxPaidOnBase_Payroll;
+
+    const totalPaidYear = taxPaidOnBase_Payroll + einbehaltenTotal;
+    const T0 = calculateTotalTax(zveBasis_Active, spl, true, effectiveAbfindung, kinderCount, 0).total;
+    const T1 = calculateTotalTax(zveBasis_Active, spl, true, barBruttoTaxable, kinderCount, 0).total;
+    const erst = Math.max(0, totalPaidYear - T3);
+
+    // Total lifetime tax savings for bAV & DRV (upfront + Fünftel)
+    const bavAndDrvTotalSavings = Math.max(0, T0 - T1);
+    const drvOnlyTaxBase = Math.max(0, effectiveAbfindung - drvTaxFree);
+    const T_drvOnly = calculateTotalTax(zveBasis_Active, spl, true, drvOnlyTaxBase, kinderCount, 0).total;
+    const bavOnlyTaxBase = Math.max(0, effectiveAbfindung - bav);
+    const T_bavOnly = calculateTotalTax(zveBasis_Active, spl, true, bavOnlyTaxBase, kinderCount, 0).total;
+    const sBav = Math.max(0, T0 - T_bavOnly);
+    const sDrv = Math.max(0, T0 - T_drvOnly);
+    const drvTotalErsparnis = (sBav + sDrv) > 0 ? bavAndDrvTotalSavings * (sDrv / (sBav + sDrv)) : 0;
+
+    // Actual October 2028 FA Refund attribution (strictly summing to `erst`)
+    // bAV is 100% upfront; DRV's taxable 50% share generates Fünftel refund in Oct 2028
+    const tax_WithoutDrvTaxable = calculateTotalTax(zve_after_all_Active, spl, true, Math.max(0, barBruttoTaxable - drvTaxable), kinderCount, 0).total;
+    const tax_WithoutDrvTaxable_NoFf = calculateTotalTax(zve_after_all_Active, spl, false, Math.max(0, barBruttoTaxable - drvTaxable), kinderCount, 0).total;
+    const tax_WithDrvTaxable_NoFf = calculateTotalTax(zve_after_all_Active, spl, false, barBruttoTaxable, kinderCount, 0).total;
+    const drvFuenftelRefund2028 = drvTaxable > 0
+        ? Math.max(0, (tax_WithDrvTaxable_NoFf - tax_WithoutDrvTaxable_NoFf) - (T3 - tax_WithoutDrvTaxable))
+        : 0;
+
+    const combinedOptSavings = Math.max(0, T1 - T3);
+    const standaloneRuerup = Math.max(0, T1 - calculateTotalTax(zveBasis_Active - ruerup, spl, true, barBruttoTaxable, kinderCount, 0).total);
+    const standaloneIab = Math.max(0, T1 - calculateTotalTax(zveBasis_Active - iab, spl, true, barBruttoTaxable, kinderCount, 0).total);
+    const standaloneSum = standaloneRuerup + standaloneIab;
+    const ruerupErsparnis = standaloneSum > 0 ? combinedOptSavings * (standaloneRuerup / standaloneSum) : 0;
+    const iabErsparnis = standaloneSum > 0 ? combinedOptSavings * (standaloneIab / standaloneSum) : 0;
+
+    const taxBase_after_all = calculateTotalTax(zve_after_all_Active, spl, false, 0, kinderCount, 0).total;
+    const finalAbfTax = Math.max(0, T3 - taxBase_after_all);
+    const netFf = Math.max(0, barBruttoCash - finalAbfTax);
+    const rateFinal = barBruttoTaxable > 0 ? (finalAbfTax / barBruttoTaxable) * 100 : 0;
+
+    // Update Slider Pills & Bars
+    updateOptPill('bav', bav, upfrontSaved_Bav, true);
+    updateOptPill('drv', drvRaw, drvTotalErsparnis, false);
+    updateOptPill('ruerup', ruerup, ruerupErsparnis, false);
+    updateOptPill('iab', iabInvest, iabErsparnis, false);
+
+    // Splitting Banner & Max Partner Gross Solver
+    if (spl === 2) {
+        const sb = document.getElementById('splittingErklaerung');
+        sb.style.display = 'block';
+        const maxPartnerGross = findMaxPartnerGrossForSplitting(getEmploymentZve(bg, zb, kinderCount) - gkvPenalty2027 - iab - ruerup, barBruttoTaxable, kinderCount, zb);
+        document.getElementById('partnerMaxSplittingInfo').innerText = `Splitting-Vorteil bis ca. ${format(maxPartnerGross)} Partner-Brutto`;
+        const vSingle = calculateTotalTax(getEmploymentZve(bg, zb, kinderCount) - gkvPenalty2027 - iab - ruerup / 2, 1, true, barBruttoTaxable, kinderCount, 0).total
+                      + calculateTotalTax(getEmploymentZve(pGehalt, zb, kinderCount) - ruerup / 2, 1, false, 0, kinderCount, 0).total;
+        const v = vSingle - T3;
+        if (v >= 0) {
+            sb.style.borderLeftColor = "var(--success)";
+            sb.style.backgroundColor = "rgba(16, 185, 129, 0.10)";
+            sb.innerHTML = `✅ <strong>Splitting-Vorteil (+ ${format(v)}):</strong> Zusammenveranlagung ist bis ca. <strong>${format(maxPartnerGross)}</strong> Partner-Brutto günstiger als Einzelveranlagung.`;
+        } else {
+            sb.style.borderLeftColor = "var(--danger)";
+            sb.style.backgroundColor = "rgba(239, 68, 68, 0.10)";
+            sb.innerHTML = `⚠️ <strong>Fünftel-Falle (− ${format(Math.abs(v))}):</strong> Zusammenveranlagung kostet hier extra! Einzelveranlagung (Grundtarif) prüfen (Grenze: ~${format(maxPartnerGross)}).`;
+        }
+    } else {
+        document.getElementById('splittingErklaerung').style.display = 'none';
+    }
+
+    // Update Core KPIs & Sticky Mobile Bar
+    document.getElementById('resNettoSofort').innerText = format(netVoll);
+    document.getElementById('resErstattung').innerText = "+ " + format(erst);
+    document.getElementById('resNettoOptimal').innerText = format(netFf);
+    document.getElementById('resSteuerSatzSub').innerText = `Effektiver Steuersatz: ${rateFinal.toFixed(1)} %`;
+
+    document.getElementById('stickySofort').innerText = format(netVoll);
+    document.getElementById('stickyErst').innerText = "+ " + format(erst);
+    document.getElementById('stickyOptimal').innerText = format(netFf);
+
+    const liq27 = netVoll + netGehaltBase - ruerup - iabInvest - gkvPenalty2027;
+    const liq28 = liq27 + erst;
+    document.getElementById('resLiqEnd').innerText = format(liq28);
+    document.getElementById('resLiqEnd').style.color = liq28 < 0 ? "var(--danger)" : "var(--success)";
+
+    // Tables 1–3
+    document.getElementById('sumT1').innerText = `Sofort-Netto: ${format(netVoll)}`;
+    document.getElementById('t1BBase').innerText = format(abf_noTurbo);
+    document.getElementById('t1BTurbo').innerText = "+ " + format(praemieBrutto);
+    document.getElementById('t1BAlt').innerText = format(effectiveAbfindung);
+    document.getElementById('t1Bav').innerText = "– " + format(bav);
+    document.getElementById('t1Drv').innerText = "– " + format(drvRaw);
+    document.getElementById('t1BNeu').innerText = format(barBruttoTaxable);
+    document.getElementById('rateUpfront').innerText = rateUpfront.toFixed(1) + "%";
+    document.getElementById('t1TaxTotal').innerText = "– " + format(einbehaltenTotal);
+    document.getElementById('t1N').innerText = format(netVoll);
+
+    document.getElementById('sumT2').innerText = `Optimal-Netto: ${format(netFf)}`;
+    document.getElementById('t2ZveBase').innerText = format(zve_after_all_Active);
+    document.getElementById('t2BNeu').innerText = format(barBruttoTaxable);
+    document.getElementById('rateFinal').innerText = rateFinal.toFixed(1) + "%";
+    document.getElementById('t2AbfTax').innerText = "– " + format(finalAbfTax);
+    document.getElementById('t2Erst').innerText = "+ " + format(erst);
+    document.getElementById('t2N').innerText = format(netFf);
+
+    document.getElementById('sumT3').innerText = `Konto Ende 2028: ${format(liq28)}`;
+    document.getElementById('t3NetAbf').innerText = "+ " + format(netVoll);
+    document.getElementById('t3NetSal').innerText = "+ " + format(netGehaltBase);
+    document.getElementById('t3Ruerup').innerText = "– " + format(ruerup);
+    document.getElementById('t3Iab').innerText = "– " + format(iabInvest);
+    document.getElementById('t3Gkv').innerText = "– " + format(gkvPenalty2027);
+    document.getElementById('t3Liq27').innerText = format(liq27);
+    document.getElementById('t3Erst').innerText = "+ " + format(erst);
+    document.getElementById('t3Liq28').innerText = format(liq28);
+
+    renderMainCharts(barBruttoTaxable, einbehaltenTotal, netVoll, finalAbfTax, netFf, drvFuenftelRefund2028, ruerupErsparnis, iabErsparnis, erst);
+    renderSprinterChart(isolated_netto_praemie, pure_fuenftel_advantage, lost_net_salary, gkv_turbo_sim, rvSim + alg1Sim, sprinterNetDiff);
+
+    const simCtx = {
+        altesMonatsgehalt, preMonths, fristMonate, abf_noTurbo, turboFaktor,
+        agZveBasis, spl, pGehalt, partnerZveBasis, zb, kinderCount,
+        bav, drvRaw, drvTaxFree, ruerup, iab, iabInvest,
+        gkvHoechstsatzMonat, gkvMinMonat, alg1Monat, preExitGkvStatus
+    };
+    runSectionC(simCtx);
+    runSectionD(simCtx);
+}
+
+function updateOptPill(prefix, amount, savings, isUpfrontOnly) {
+    const pill = document.getElementById(prefix + 'SavingsPill');
+    const box = document.getElementById(prefix + 'Erklaerung');
+    const map = { bav: 'b', drv: 'd', ruerup: 'r', iab: 'i' };
+    const short = map[prefix];
+    if (amount > 0) {
+        const pct = ((savings / amount) * 100).toFixed(1);
+        pill.style.display = 'inline-block';
+        pill.innerText = isUpfrontOnly
+            ? `Sofort-Ersparnis: ${format(savings)} (${pct}%)`
+            : `Ersparnis: ${format(savings)} (${pct}%)`;
+        box.style.display = 'flex';
+        document.getElementById(short + 'Ersparnis').innerText = format(savings);
+        document.getElementById(short + 'Prozent').innerText = pct + " %";
+    } else {
+        pill.style.display = 'none';
+        box.style.display = 'none';
+    }
+}
+
+function renderMainCharts(barBrutto, einbehalten, netVoll, finalAbfTax, netFf, drvRefund28, ruerupSav, iabSav, totalErst) {
+    const th = getChartTheme();
+    const baseOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: th.textColor, font: { size: 11 } } } }
+    };
+
+    if (chartAg) chartAg.destroy();
+    chartAg = new Chart(document.getElementById('chartAg'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Sofort-Netto', 'Lohnsteuer-Einbehalt'],
+            datasets: [{ data: [Math.max(0, netVoll), Math.max(0, einbehalten)], backgroundColor: ['#3b82f6', '#ef4444'], borderWidth: 0 }]
+        },
+        options: baseOpts
+    });
+
+    if (chartFa) chartFa.destroy();
+    chartFa = new Chart(document.getElementById('chartFa'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Optimal-Netto', 'Endgültige Steuer'],
+            datasets: [{ data: [Math.max(0, netFf), Math.max(0, finalAbfTax)], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0 }]
+        },
+        options: baseOpts
+    });
+
+    // Chart 3 strictly decomposes the actual Oct. 2028 FA Refund (`totalErst`)
+    const baseFfSav = Math.max(0, totalErst - drvRefund28 - ruerupSav - iabSav);
+    if (chartErstattung) chartErstattung.destroy();
+    chartErstattung = new Chart(document.getElementById('chartErstattung'), {
+        type: 'bar',
+        data: {
+            labels: ['Fünftel-Basis', 'DRV (50% Fünftel)', 'Rürup', 'PV-IAB'],
+            datasets: [{
+                label: 'FA-Erstattung Okt. 2028 (€)',
+                data: [baseFfSav, drvRefund28, ruerupSav, iabSav],
+                backgroundColor: ['#3b82f6', '#06b6d4', '#10b981', '#a855f7'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            ...baseOpts,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: th.textColor, font: { size: 10 } }, grid: { display: false } },
+                y: { ticks: { color: th.textColor, font: { size: 10 } }, grid: { color: th.gridColor } }
+            }
+        }
+    });
+}
+
+function renderSprinterChart(netPraemie, taxBonus, lostSal, gkvCost, rvAlgCost, netDiff) {
+    const th = getChartTheme();
+    let run = 0;
+    const b1 = [0, netPraemie]; run += netPraemie;
+    const b2 = [run, run + taxBonus]; run += taxBonus;
+    const b3 = [run - lostSal, run]; run -= lostSal;
+    const b4 = [run - gkvCost, run]; run -= gkvCost;
+    const b5 = [run - rvAlgCost, run]; run -= rvAlgCost;
+    const b6 = netDiff >= 0 ? [0, netDiff] : [netDiff, 0];
+
+    if (chartTurbo) chartTurbo.destroy();
+    chartTurbo = new Chart(document.getElementById('chartTurbo'), {
+        type: 'bar',
+        data: {
+            labels: ['+ Netto-Prämie', '+ Fünftel-Steuer', '− Netto-Gehalt', '− GKV/PV Lücke', '− RV & ALG-1', '= ECHTER VORTEIL'],
+            datasets: [{
+                data: [b1, b2, b3, b4, b5, b6],
+                backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#eab308', netDiff >= 0 ? '#10b981' : '#ef4444'],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: th.textColor, font: { size: 10 } }, grid: { color: th.gridColor } },
+                y: { ticks: { color: th.textColor, font: { size: 10 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function simulateRunwayScenario(ctx, isSprinterMode) {
+    const monthlyLiving = Math.max(0, parseFloat(document.getElementById('runwayMonthlyExpenses').value) || 0);
+    const alg1TotalEligible = Math.max(0, parseInt(document.getElementById('runwayAlg1TotalMonths').value) || 12);
+    const upfrontSpend = Math.max(0, parseFloat(document.getElementById('runwayUpfrontSpend').value) || 0);
+    const gkvMode = document.getElementById('runwayGkvMode').value;
+    const customGkv = Math.max(0, parseFloat(document.getElementById('runwayCustomGkvVal').value) || 0);
+    const realReturnPa = (parseFloat(document.getElementById('runwayRealReturn').value) || 0) / 100;
+    const monthlyRealRate = realReturnPa / 12;
+    const includeSalSavings = document.getElementById('runwayIncludeSalarySavings').checked;
+    const capRuerupSweet = document.getElementById('runwayCapRuerupSweetSpot').checked;
+    const minijobMonthly = Math.max(0, parseFloat(document.getElementById('runwayMinijobMonthly').value) || 0);
+    const minijobDuringAlg1 = Math.min(165, minijobMonthly);
+
+    const postAlg1Gkv = gkvMode === 'min' ? ctx.gkvMinMonat : (gkvMode === 'fam' ? 0 : customGkv);
+
+    const salMonthsTotal = isSprinterMode ? ctx.preMonths : (ctx.preMonths + ctx.fristMonate);
+    const salMonthsIn2027 = Math.min(12, salMonthsTotal);
+    const salMonthsIn2028 = Math.max(0, salMonthsTotal - 12);
+
+    const grossAbf = isSprinterMode ? (ctx.abf_noTurbo + ctx.fristMonate * ctx.altesMonatsgehalt * ctx.turboFaktor) : ctx.abf_noTurbo;
+    const effBav = Math.min(ctx.bav, grossAbf);
+    const effDrv = Math.min(Math.max(0, grossAbf - effBav), ctx.drvRaw);
+    const taxableAbf = Math.max(0, grossAbf - effBav - effDrv * 0.5);
+    const cashAbfBeforeTax = Math.max(0, grossAbf - effBav - effDrv);
+
+    const dynamicRuhens = isSprinterMode
+        ? Math.min(12, ctx.fristMonate, Math.ceil((0.45 * grossAbf) / Math.max(1, ctx.altesMonatsgehalt)))
+        : 0;
+    const sperrzeitTrim = isSprinterMode ? Math.min(3, alg1TotalEligible) : 0;
+    const algMonths = Math.max(0, alg1TotalEligible - sperrzeitTrim);
+
+    const agTaxBase = calculateTotalTax(ctx.agZveBasis, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+    const agTaxFull = calculateTotalTax(ctx.agZveBasis + taxableAbf, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+    const upfrontTaxAbf = Math.max(0, agTaxFull - agTaxBase);
+    const sofortNettoAbf = Math.max(0, cashAbfBeforeTax - upfrontTaxAbf);
+
+    const rem2027 = Math.max(0, 12 - salMonthsIn2027);
+    const ruhens2027 = Math.min(dynamicRuhens, rem2027);
+    const grace2027 = (isSprinterMode && ctx.preExitGkvStatus === 'pflicht' && ruhens2027 > 0) ? 1 : 0;
+    const payableRuhens2027 = Math.max(0, ruhens2027 - grace2027);
+    const alg2027 = Math.max(0, Math.min(algMonths, rem2027 - ruhens2027));
+
+    const grossSal2027 = salMonthsIn2027 * ctx.altesMonatsgehalt;
+    const taxPaidSal2027 = calculateTotalTax(getEmploymentZve(grossSal2027, ctx.zb, ctx.kinderCount) + ctx.partnerZveBasis, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+
+    let maxRuerupScen = Math.max(0, (MAX_ALTERSVORSORGE * ctx.spl) - (Math.min(grossSal2027, BBG_RV) * 0.186) - (ctx.spl === 2 ? Math.min(ctx.pGehalt, BBG_RV) * 0.186 : 0));
+    let effRuerup = Math.min(ctx.ruerup, maxRuerupScen);
+    const baseZveBeforeRuerup = getEmploymentZve(grossSal2027, ctx.zb, ctx.kinderCount) - (payableRuhens2027 * ctx.gkvHoechstsatzMonat) - ctx.iab + ctx.partnerZveBasis;
+    if (capRuerupSweet) {
+        effRuerup = Math.min(effRuerup, Math.max(0, baseZveBeforeRuerup));
+    }
+
+    const zve2027 = baseZveBeforeRuerup - effRuerup;
+    const prog2027 = alg2027 * ctx.alg1Monat;
+    const finalTax2027 = calculateTotalTax(zve2027, ctx.spl, true, taxableAbf, ctx.kinderCount, prog2027).total;
+    const faRefundOct2028 = Math.max(0, (taxPaidSal2027 + upfrontTaxAbf) - finalTax2027);
+
+    const rem2028AfterSal = Math.max(0, 12 - salMonthsIn2028);
+    const ruhens2028 = Math.max(0, dynamicRuhens - ruhens2027);
+    const alg2028 = Math.max(0, Math.min(algMonths - alg2027, rem2028AfterSal - ruhens2028));
+    const grossSal2028 = salMonthsIn2028 * ctx.altesMonatsgehalt;
+    let faSettlementOct2029 = 0;
+    if (ctx.spl === 2 || salMonthsIn2028 > 0) {
+        const withheld2028 = calculateTotalTax(getEmploymentZve(grossSal2028, ctx.zb, ctx.kinderCount) + ctx.partnerZveBasis, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+        const zve2028 = getEmploymentZve(grossSal2028, ctx.zb, ctx.kinderCount) - (ruhens2028 * ctx.gkvHoechstsatzMonat) + ctx.partnerZveBasis;
+        const finalTax2028 = calculateTotalTax(zve2028, ctx.spl, false, 0, ctx.kinderCount, alg2028 * ctx.alg1Monat).total;
+        faSettlementOct2029 = withheld2028 - finalTax2028;
+    }
+
+    const OCT_2028_IDX = 21;
+    const OCT_2029_IDX = 33;
+    const MAX_M = 240;
+    let cash = 0;
+    let payoutDone = false, ref28Done = false, ref29Done = false;
+    let bridgeDeficitMax = 0, firstDeficitM = null;
+    const curve = [];
+
+    const monthlyNetSal = (grossSal2027 > 0 && salMonthsIn2027 > 0)
+        ? (grossSal2027 - getSozAbzug(grossSal2027, ctx.zb, ctx.kinderCount) - taxPaidSal2027) / salMonthsIn2027
+        : (ctx.altesMonatsgehalt - getSozAbzug(ctx.altesMonatsgehalt, ctx.zb, ctx.kinderCount)) * 0.65;
+
+    let exhaustedMonth = MAX_M;
+
+    for (let m = 0; m < MAX_M; m++) {
+        if (!payoutDone && m === salMonthsTotal) {
+            cash += (sofortNettoAbf - effRuerup - upfrontSpend);
+            payoutDone = true;
+        }
+        if (!ref28Done && m === OCT_2028_IDX) {
+            cash += faRefundOct2028;
+            ref28Done = true;
+        }
+        if (!ref29Done && m === OCT_2029_IDX) {
+            cash += faSettlementOct2029;
+            ref29Done = true;
+        }
+
+        if (m < salMonthsTotal) {
+            if (includeSalSavings) cash += Math.max(0, monthlyNetSal - monthlyLiving);
+        } else if (m < salMonthsTotal + dynamicRuhens) {
+            const ruhIdx = m - salMonthsTotal;
+            const gkvThisM = (isSprinterMode && ctx.preExitGkvStatus === 'pflicht' && ruhIdx === 0) ? 0 : ctx.gkvHoechstsatzMonat;
+            cash -= (monthlyLiving + gkvThisM - minijobMonthly);
+        } else if (m < salMonthsTotal + dynamicRuhens + algMonths) {
+            cash += (ctx.alg1Monat + minijobDuringAlg1 - monthlyLiving);
+        } else {
+            cash -= (monthlyLiving + postAlg1Gkv - minijobMonthly);
+        }
+
+        if (cash > 0 && monthlyRealRate !== 0) {
+            cash *= (1 + monthlyRealRate);
+        }
+
+        if (m < OCT_2028_IDX && cash < 0) {
+            if (firstDeficitM === null) firstDeficitM = m;
+            bridgeDeficitMax = Math.max(bridgeDeficitMax, Math.abs(cash));
+        }
+
+        curve.push(Math.round(cash));
+
+        const allInjected = payoutDone && ref28Done && (faSettlementOct2029 <= 0 || ref29Done);
+        if (allInjected && cash <= 0) {
+            exhaustedMonth = m + 1;
+            break;
+        }
+    }
+
+    const postPhaseMonths = Math.max(0, exhaustedMonth - (salMonthsTotal + dynamicRuhens + algMonths));
+    return {
+        salMonthsTotal,
+        dynamicRuhens,
+        algMonths,
+        postPhaseMonths,
+        exhaustedMonth,
+        faRefundOct2028,
+        bridgeDeficitMax,
+        firstDeficitM,
+        curve
+    };
+}
+
+function runSectionC(ctx) {
+    const gkvMode = document.getElementById('runwayGkvMode').value;
+    document.getElementById('runwayCustomGkvVal').style.display = gkvMode === 'custom' ? 'block' : 'none';
+
+    const std = simulateRunwayScenario(ctx, false);
+    const spr = simulateRunwayScenario(ctx, true);
+
+    document.getElementById('runwayAlg1EffInfo').innerText = `Sprinter: ${spr.algMonths}M (inkl. Sperrzeit) | Std: ${std.algMonths}M`;
+    const mjVal = Math.max(0, parseFloat(document.getElementById('runwayMinijobMonthly').value) || 0);
+    document.getElementById('runwayMinijobInfo').innerText = mjVal > 0
+        ? `Während ALG 1: +${format(Math.min(165, mjVal))}/Mo frei | Nach ALG 1: +${format(mjVal)}/Mo voll`
+        : 'Steuer- & GKV-frei (während ALG 1 max. 165 € frei)';
+    document.getElementById('rwStdMonths').innerText = `${std.exhaustedMonth} Mon. (${(std.exhaustedMonth / 12).toFixed(1)} J.)`;
+    document.getElementById('rwStdDate').innerText = `Bis ${getMonthLabel(std.exhaustedMonth)}`;
+
+    document.getElementById('rwSprMonths').innerText = `${spr.exhaustedMonth} Mon. (${(spr.exhaustedMonth / 12).toFixed(1)} J.)`;
+    document.getElementById('rwSprDate').innerText = `Bis ${getMonthLabel(spr.exhaustedMonth)}`;
+
+    const delta = spr.exhaustedMonth - std.exhaustedMonth;
+    document.getElementById('rwDeltaMonths').innerText = `${delta >= 0 ? '+ ' : '− '}${Math.abs(delta)} Mon.`;
+    document.getElementById('rwDeltaMonths').style.color = delta >= 0 ? 'var(--success)' : 'var(--warning)';
+    document.getElementById('rwDeltaSub').innerText = delta >= 0 ? 'Sprinter hält länger durch' : 'Standard hält länger durch';
+
+    document.getElementById('rwFaRefund').innerText = `+ ${format(spr.faRefundOct2028)}`;
+    document.getElementById('rwBridgeSub').innerText = spr.bridgeDeficitMax > 0
+        ? `Brücke ab ${getMonthLabel(spr.firstDeficitM)}: ${format(spr.bridgeDeficitMax)}`
+        : 'Zwischenfinanzierung: Keine';
+
+    document.getElementById('runwayHeaderBadge').innerText = `Std: ${getMonthLabel(std.exhaustedMonth)} | Sprinter: ${getMonthLabel(spr.exhaustedMonth)} (${delta >= 0 ? '+' : ''}${delta}M)`;
+
+    const bridgeBanner = document.getElementById('runwayBridgeWarning');
+    if (spr.bridgeDeficitMax > 0) {
+        bridgeBanner.style.display = 'block';
+        bridgeBanner.style.borderLeftColor = 'var(--warning)';
+        bridgeBanner.style.backgroundColor = 'rgba(245, 158, 11, 0.10)';
+        bridgeBanner.innerHTML = `⚠️ <strong>Okt.-2028 Brücke nötig:</strong> Vor Eintreffen der Finanzamt-Erstattung (${format(spr.faRefundOct2028)}) entsteht ab <strong>${getMonthLabel(spr.firstDeficitM)}</strong> ein kurzfristiger Liquiditätsbedarf von <strong>${format(spr.bridgeDeficitMax)}</strong>.`;
+    } else {
+        bridgeBanner.style.display = 'none';
+    }
+
+    const th = getChartTheme();
+    if (runwayPhaseChart) runwayPhaseChart.destroy();
+    runwayPhaseChart = new Chart(document.getElementById('runwayPhaseChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Standard (Frist)', 'Sprinter (Sofort)'],
+            datasets: [
+                { label: '1. Gehaltsphase', data: [std.salMonthsTotal, spr.salMonthsTotal], backgroundColor: '#6366f1' },
+                { label: '2. Ruhenszeit (GKV)', data: [std.dynamicRuhens, spr.dynamicRuhens], backgroundColor: '#f59e0b' },
+                { label: '3. ALG-1 Bezug', data: [std.algMonths, spr.algMonths], backgroundColor: '#06b6d4' },
+                { label: '4. Privatiers-Phase', data: [std.postPhaseMonths, spr.postPhaseMonths], backgroundColor: '#10b981' }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: th.textColor, font: { size: 10 } } } },
+            scales: {
+                x: { stacked: true, ticks: { color: th.textColor }, grid: { color: th.gridColor } },
+                y: { stacked: true, ticks: { color: th.textColor }, grid: { display: false } }
+            }
+        }
+    });
+
+    const maxLen = Math.max(std.curve.length, spr.curve.length);
+    const labels = Array.from({ length: maxLen }, (_, i) => getMonthLabel(i));
+    if (runwayCurveChart) runwayCurveChart.destroy();
+    runwayCurveChart = new Chart(document.getElementById('runwayCurveChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Sprinter Konto-Cash (€)', data: spr.curve, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.12)', tension: 0.25, pointRadius: 0 },
+                { label: 'Standard Konto-Cash (€)', data: std.curve, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.10)', tension: 0.25, pointRadius: 0 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: th.textColor, font: { size: 10 } } } },
+            scales: {
+                x: { ticks: { color: th.textColor, maxTicksLimit: 10, font: { size: 10 } }, grid: { display: false } },
+                y: { ticks: { color: th.textColor, font: { size: 10 } }, grid: { color: th.gridColor } }
+            }
+        }
+    });
+}
+
+function simulateCrossoverScenario(ctx, isSprinterMode, newMonthlyGross, delayMonths, annualGrowthPa) {
+    const alg1TotalEligible = Math.max(0, parseInt(document.getElementById('runwayAlg1TotalMonths').value) || 12);
+    const upfrontSpend = Math.max(0, parseFloat(document.getElementById('runwayUpfrontSpend').value) || 0);
+    const gkvMode = document.getElementById('runwayGkvMode').value;
+    const customGkv = Math.max(0, parseFloat(document.getElementById('runwayCustomGkvVal').value) || 0);
+    const realReturnPa = (parseFloat(document.getElementById('runwayRealReturn').value) || 0) / 100;
+    const monthlyRealRate = realReturnPa / 12;
+    const capRuerupSweet = document.getElementById('runwayCapRuerupSweetSpot').checked;
+    const postAlg1Gkv = gkvMode === 'min' ? ctx.gkvMinMonat : (gkvMode === 'fam' ? 0 : customGkv);
+
+    const exitM = isSprinterMode ? ctx.preMonths : (ctx.preMonths + ctx.fristMonate);
+    const jobStartM = exitM + delayMonths;
+
+    const grossAbf = isSprinterMode ? (ctx.abf_noTurbo + ctx.fristMonate * ctx.altesMonatsgehalt * ctx.turboFaktor) : ctx.abf_noTurbo;
+    const effBav = Math.min(ctx.bav, grossAbf);
+    const effDrv = Math.min(Math.max(0, grossAbf - effBav), ctx.drvRaw);
+    const taxableAbf = Math.max(0, grossAbf - effBav - effDrv * 0.5);
+    const cashAbfBeforeTax = Math.max(0, grossAbf - effBav - effDrv);
+
+    const dynamicRuhens = isSprinterMode
+        ? Math.min(12, ctx.fristMonate, Math.ceil((0.45 * grossAbf) / Math.max(1, ctx.altesMonatsgehalt)))
+        : 0;
+    const sperrzeitTrim = isSprinterMode ? Math.min(3, alg1TotalEligible) : 0;
+    const algMonths = Math.max(0, alg1TotalEligible - sperrzeitTrim);
+
+    const agTaxBase = calculateTotalTax(ctx.agZveBasis, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+    const agTaxFull = calculateTotalTax(ctx.agZveBasis + taxableAbf, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+    const upfrontTaxAbf = Math.max(0, agTaxFull - agTaxBase);
+    const sofortNettoAbf = Math.max(0, cashAbfBeforeTax - upfrontTaxAbf);
+
+    const oldSalMonths2027 = Math.min(12, exitM);
+    const newSalMonths2027 = Math.max(0, 12 - Math.min(12, jobStartM));
+    const gapMonths2027 = Math.max(0, Math.min(12, jobStartM) - oldSalMonths2027);
+    const ruhens2027 = Math.min(dynamicRuhens, gapMonths2027);
+    const grace2027 = (isSprinterMode && ctx.preExitGkvStatus === 'pflicht' && ruhens2027 > 0) ? 1 : 0;
+    const payableRuhens2027 = Math.max(0, ruhens2027 - grace2027);
+    const alg2027 = Math.max(0, Math.min(algMonths, gapMonths2027 - ruhens2027));
+
+    const gross2027 = (oldSalMonths2027 * ctx.altesMonatsgehalt) + (newSalMonths2027 * newMonthlyGross);
+    const taxPaid2027 = calculateTotalTax(getEmploymentZve(gross2027, ctx.zb, ctx.kinderCount) + ctx.partnerZveBasis, ctx.spl, false, 0, ctx.kinderCount, 0).total;
+
+    let maxRuerupScen = Math.max(0, (MAX_ALTERSVORSORGE * ctx.spl) - (Math.min(gross2027, BBG_RV) * 0.186) - (ctx.spl === 2 ? Math.min(ctx.pGehalt, BBG_RV) * 0.186 : 0));
+    let effRuerup = Math.min(ctx.ruerup, maxRuerupScen);
+    const baseZveBeforeRuerup = getEmploymentZve(gross2027, ctx.zb, ctx.kinderCount) - (payableRuhens2027 * ctx.gkvHoechstsatzMonat) - ctx.iab + ctx.partnerZveBasis;
+    if (capRuerupSweet) effRuerup = Math.min(effRuerup, Math.max(0, baseZveBeforeRuerup));
+
+    const zve2027 = baseZveBeforeRuerup - effRuerup;
+    const finalTax2027 = calculateTotalTax(zve2027, ctx.spl, true, taxableAbf, ctx.kinderCount, alg2027 * ctx.alg1Monat).total;
+    const faRefundOct2028 = Math.max(0, (taxPaid2027 + upfrontTaxAbf) - finalTax2027);
+
+    function getMonthlyNetForGross(monthlyBrutto) {
+        if (monthlyBrutto <= 0) return 0;
+        const annGross = monthlyBrutto * 12;
+        const annSoz = getSozAbzug(annGross, ctx.zb, ctx.kinderCount);
+        const annTax = calculateTotalTax(getEmploymentZve(annGross, ctx.zb, ctx.kinderCount), 1, false, 0, ctx.kinderCount, 0).total;
+        return (annGross - annSoz - annTax) / 12;
+    }
+
+    const baseOldNet = getMonthlyNetForGross(ctx.altesMonatsgehalt);
+    const baseNewNet = getMonthlyNetForGross(newMonthlyGross);
+
+    const OCT_2028_IDX = 21;
+    const MAX_M = 360; 
+    let advantage = 0;
+    let payoutDone = false, ref28Done = false;
+    let cushionAtJobStart = 0;
+    let breakevenMonthFromJan27 = null;
+    const advSeries = [];
+
+    for (let m = 0; m < MAX_M; m++) {
+        if (!payoutDone && m === exitM) {
+            advantage += (sofortNettoAbf - effRuerup - upfrontSpend);
+            payoutDone = true;
+        }
+        if (!ref28Done && m === OCT_2028_IDX) {
+            advantage += faRefundOct2028;
+            ref28Done = true;
+        }
+
+        const yearIdx = Math.floor(m / 12);
+        const growthFactor = Math.pow(1 + annualGrowthPa, yearIdx);
+        const oldNetThisMonth = baseOldNet * growthFactor;
+        const newNetThisMonth = baseNewNet * growthFactor;
+
+        if (m < exitM) {
+            // zero diff
+        } else if (m < jobStartM) {
+            const gapIdx = m - exitM;
+            if (gapIdx < dynamicRuhens) {
+                const gkvThisM = (isSprinterMode && ctx.preExitGkvStatus === 'pflicht' && gapIdx === 0) ? 0 : ctx.gkvHoechstsatzMonat;
+                advantage -= (oldNetThisMonth + gkvThisM);
+            } else if (gapIdx < dynamicRuhens + algMonths) {
+                advantage += (ctx.alg1Monat - oldNetThisMonth);
+            } else {
+                advantage -= (oldNetThisMonth + postAlg1Gkv);
+            }
+        } else {
+            if (m === jobStartM) {
+                cushionAtJobStart = advantage + (ref28Done ? 0 : faRefundOct2028);
+            }
+            const deficitThisMonth = Math.max(0, oldNetThisMonth - newNetThisMonth);
+            advantage -= deficitThisMonth;
+        }
+
+        if (advantage > 0 && monthlyRealRate !== 0) {
+            advantage *= (1 + monthlyRealRate);
+        }
+
+        advSeries.push(Math.round(advantage));
+
+        if (payoutDone && ref28Done && breakevenMonthFromJan27 === null && advantage <= 0) {
+            breakevenMonthFromJan27 = m + 1;
+        }
+        if (breakevenMonthFromJan27 !== null && m >= Math.max(120, breakevenMonthFromJan27 + 12)) {
+            break;
+        }
+    }
+
+    if (jobStartM <= exitM) {
+        cushionAtJobStart = (sofortNettoAbf - effRuerup - upfrontSpend) + faRefundOct2028;
+    }
+
+    const breakevenMonthsInNewJob = breakevenMonthFromJan27 !== null
+        ? Math.max(0, breakevenMonthFromJan27 - jobStartM)
+        : null;
+
+    return {
+        exitM,
+        jobStartM,
+        baseOldNet,
+        baseNewNet,
+        cushionAtJobStart,
+        breakevenMonthFromJan27,
+        breakevenMonthsInNewJob,
+        advSeries
+    };
+}
+
+function runSectionD(ctx) {
+    const rawNewGross = Math.max(0, parseFloat(document.getElementById('crossoverNewGross').value) || 0);
+    const period = document.getElementById('crossoverPeriod').value;
+    const newMonthlyGross = period === 'year' ? (rawNewGross / 12) : rawNewGross;
+    const delayMonths = Math.max(0, parseInt(document.getElementById('crossoverDelayMonths').value) || 0);
+    const annualGrowthPa = (parseFloat(document.getElementById('crossoverSalaryGrowth').value) || 0) / 100;
+
+    const std = simulateCrossoverScenario(ctx, false, newMonthlyGross, delayMonths, annualGrowthPa);
+    const spr = simulateCrossoverScenario(ctx, true, newMonthlyGross, delayMonths, annualGrowthPa);
+
+    const monthlyNetLoss = Math.max(0, std.baseOldNet - std.baseNewNet);
+    document.getElementById('coMonthlyLoss').innerText = `${format(monthlyNetLoss)} / Mo`;
+    document.getElementById('coNetCompareSub').innerText = `Alt: ${format(std.baseOldNet)} vs. Neu: ${format(std.baseNewNet)}`;
+    document.getElementById('crossoverNetDiffStat').innerText = `Monatl. Netto-Einbuße: ${format(monthlyNetLoss)} / Mo`;
+
+    const fmtBeDate = (res) => res.breakevenMonthFromJan27 !== null ? getMonthLabel(res.breakevenMonthFromJan27) : '> 30 Jahre (Nie)';
+    const fmtBeDur = (res) => res.breakevenMonthsInNewJob !== null
+        ? `${res.breakevenMonthsInNewJob} Job-Mon. (${(res.breakevenMonthsInNewJob / 12).toFixed(1)} J.)`
+        : 'Gehaltslücke minimal / dauerhaft im Plus';
+
+    document.getElementById('coStdBeDate').innerText = fmtBeDate(std);
+    document.getElementById('coStdBeDur').innerText = fmtBeDur(std);
+
+    document.getElementById('coSprBeDate').innerText = fmtBeDate(spr);
+    document.getElementById('coSprBeDur').innerText = fmtBeDur(spr);
+
+    if (std.breakevenMonthFromJan27 !== null && spr.breakevenMonthFromJan27 !== null) {
+        const deltaM = spr.breakevenMonthFromJan27 - std.breakevenMonthFromJan27;
+        document.getElementById('coDeltaBe').innerText = `${deltaM >= 0 ? '+ ' : '− '}${Math.abs(deltaM)} Mon.`;
+        document.getElementById('coDeltaBe').style.color = deltaM >= 0 ? 'var(--success)' : 'var(--warning)';
+    } else {
+        document.getElementById('coDeltaBe').innerText = spr.cushionAtJobStart >= std.cushionAtJobStart ? '+ Puffer-Plus' : 'Vergleich';
+    }
+    document.getElementById('coCushionSub').innerText = `Puffer Sprinter: ${format(spr.cushionAtJobStart)} | Std: ${format(std.cushionAtJobStart)}`;
+
+    document.getElementById('crossoverHeaderBadge').innerText = `Std: ${fmtBeDate(std)} | Sprinter: ${fmtBeDate(spr)}`;
+
+    const th = getChartTheme();
+    const maxLen = Math.max(std.advSeries.length, spr.advSeries.length);
+    const labels = Array.from({ length: maxLen }, (_, i) => getMonthLabel(i));
+    const zeroLine = Array(maxLen).fill(0);
+
+    if (crossoverChart) crossoverChart.destroy();
+    crossoverChart = new Chart(document.getElementById('crossoverChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Sprinter Vermögens-Vorsprung (€)', data: spr.advSeries, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.12)', tension: 0.2, pointRadius: 0 },
+                { label: 'Standard Vermögens-Vorsprung (€)', data: std.advSeries, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.10)', tension: 0.2, pointRadius: 0 },
+                { label: 'Break-Even Schwelle (0 €)', data: zeroLine, borderColor: '#ef4444', borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: th.textColor, font: { size: 10 } } } },
+            scales: {
+                x: { ticks: { color: th.textColor, maxTicksLimit: 12, font: { size: 10 } }, grid: { display: false } },
+                y: { ticks: { color: th.textColor, font: { size: 10 } }, grid: { color: th.gridColor } }
+            }
+        }
+    });
+}
+
+// DRV Deficit Calculator (Hard Cap Enforced on Slider)
+function openDrvModal() {
+    document.getElementById('drvModal').style.display = 'flex';
+    calcDrvDeficit();
+}
+function closeDrvModal() {
+    document.getElementById('drvModal').style.display = 'none';
+}
+function calcDrvDeficit() {
+    const currentPoints = parseFloat(document.getElementById('drvCurrentPoints').value) || 0;
+    const penalty = parseFloat(document.getElementById('drvPenalty').value) || 0;
+    const pointCost = parseFloat(document.getElementById('drvYear').value) || 9942.07;
+    
+    if (penalty >= 1) {
+        document.getElementById('drvMissingPointsOut').innerText = "0 Punkte";
+        document.getElementById('drvCostOut').innerText = "0 €";
+        return;
+    }
+    
+    const missingPoints = (currentPoints * penalty) / (1 - penalty);
+    const totalCost = missingPoints * pointCost;
+    
+    document.getElementById('drvMissingPointsOut').innerText = missingPoints.toFixed(2).replace('.', ',') + " Punkte";
+    document.getElementById('drvCostOut').innerText = format(totalCost);
+}
+function applyDrvDeficit() {
+    const currentPoints = parseFloat(document.getElementById('drvCurrentPoints').value) || 0;
+    const penalty = parseFloat(document.getElementById('drvPenalty').value) || 0;
+    const pointCost = parseFloat(document.getElementById('drvYear').value) || 9942.07;
+    const missingPoints = (currentPoints * penalty) / (1 - penalty);
+    const totalCost = Math.round(missingPoints * pointCost);
+    
+    document.getElementById('optMasterToggle').checked = true;
+    document.getElementById('optSectionBody').style.display = 'block';
+    
+    const drvSlider = document.getElementById('drvSlider');
+    drvSlider.max = Math.max(500, totalCost);
+    drvSlider.value = totalCost;
+    
+    closeDrvModal();
+    berechneAlles();
+}
+
+// Popover Hover + Click Engine
+(function initPopovers() {
+    const pop = document.getElementById('globalPopover');
+    let hideTimer = null;
+
+    function showPop(btn) {
+        const key = btn.getAttribute('data-pop');
+        const info = POPOVERS[key];
+        if (!info) return;
+        clearTimeout(hideTimer);
+        pop.innerHTML = `<h4>${info.title}</h4><div>${info.text}</div>`;
+        pop.style.display = 'block';
+        const r = btn.getBoundingClientRect();
+        let left = r.left;
+        let top = r.bottom + 8;
+        if (left + 390 > window.innerWidth - 12) left = Math.max(12, window.innerWidth - 402);
+        if (top + pop.offsetHeight > window.innerHeight - 12) top = Math.max(12, r.top - pop.offsetHeight - 8);
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+    }
+
+    document.addEventListener('mouseover', (e) => {
+        const btn = e.target.closest('.info-btn');
+        if (btn) showPop(btn);
+    });
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.closest('.info-btn')) {
+            hideTimer = setTimeout(() => { pop.style.display = 'none'; }, 240);
+        }
+    });
+    pop.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    pop.addEventListener('mouseleave', () => { pop.style.display = 'none'; });
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.info-btn');
+        if (btn) { e.stopPropagation(); showPop(btn); }
+        else if (!e.target.closest('#globalPopover')) { pop.style.display = 'none'; }
+    });
+})();
+
+window.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('abfindungs_optimizer_theme') === 'light') {
+        document.body.classList.add('light-mode');
+        document.getElementById('themeToggleBtn').innerText = '🌙 Dunkel';
+    }
+    onCoreInputChange();
+});
+</script>
+</body>
+</html>

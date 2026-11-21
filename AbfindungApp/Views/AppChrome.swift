@@ -1,0 +1,149 @@
+import SwiftUI
+
+enum ThemeChoice: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var label: String { self == .system ? "System" : (self == .light ? "Hell" : "Dunkel") }
+    var scheme: ColorScheme? { self == .light ? .light : (self == .dark ? .dark : nil) }
+}
+
+struct AppToolbar: ToolbarContent {
+    @Environment(AppModel.self) private var model
+    @AppStorage("abfindungs_optimizer_theme_v2") private var themeRaw = ThemeChoice.system.rawValue
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Menu {
+                Section("Schnell-Szenarien") {
+                    Button("🚀 Sprinter + Rürup Sweet-Spot") { model.apply(.sprinterSweet) }
+                    Button("🧭 Cash-Burn & Reichweite") { model.apply(.runwayCheck) }
+                    Button("📉 Gehalts-Switch (Break-Even)") { model.apply(.gehaltsSwitch) }
+                    Button("↺ Reset", role: .destructive) { model.apply(.reset) }
+                }
+            } label: { Image(systemName: "bolt.circle") }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Picker("Darstellung", selection: $themeRaw) {
+                    ForEach(ThemeChoice.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                Divider()
+                Button { AppSheets.shared.showLegal = true } label: { Label("Rechengrößen & Recht 2027", systemImage: "info.circle") }
+                ShareLink(item: ReportFile(results: model.results, inputs: model.inputs),
+                          preview: SharePreview("Abfindungs-Report.pdf")) {
+                    Label("Report / PDF", systemImage: "doc.richtext")
+                }
+            } label: { Image(systemName: "ellipsis.circle") }
+        }
+    }
+}
+
+@Observable
+final class AppSheets {
+    static let shared = AppSheets()
+    var showLegal = false
+}
+
+struct StickyKPIBar: View {
+    @Environment(AppModel.self) private var model
+    var body: some View {
+        let r = model.results
+        HStack {
+            item("Sofort-Netto", Fmt.eur(r.netVoll), .primary)
+            Divider().frame(height: 28)
+            item("FA Okt. 2028", "+ " + Fmt.eur(r.erstattung), Theme.success)
+            Divider().frame(height: 28)
+            item("Optimal-Netto", Fmt.eur(r.netFf), Theme.accent)
+        }
+        .padding(.vertical, 8).padding(.horizontal, 12)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) { Divider() }
+    }
+    private func item(_ l: String, _ v: String, _ c: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(l).font(.caption2).foregroundStyle(.secondary)
+            Text(v).font(.subheadline.weight(.heavy)).foregroundStyle(c).minimumScaleFactor(0.6).lineLimit(1)
+        }.frame(maxWidth: .infinity)
+    }
+}
+
+struct LegalSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(Info.legal, id: \.0) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.0).font(.subheadline.weight(.semibold))
+                        Text(item.1).font(.footnote).foregroundStyle(.secondary)
+                    }.padding(.vertical, 2)
+                }
+                Section {
+                    Text("Unverbindliche Modellrechnung ohne Gewähr. Ersetzt keine Steuer- oder Rechtsberatung.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Rechengrößen & Recht 2027")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Schließen") { dismiss() } } }
+        }
+    }
+}
+
+struct DrvDeficitSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var points = 45.0
+    @State private var penalty = 0.144
+    @State private var pointCost = 9942.07
+
+    private var missing: Double { penalty >= 1 ? 0 : points * penalty / (1 - penalty) }
+    private var cost: Double { missing * pointCost }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Berechnen Sie exakt die Einmalzahlung, die nötig ist, um den lebenslangen Rentenabschlag (z. B. 14,4 % bei 4 Jahren Frührente) komplett auszugleichen.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("Bisherige Rentenpunkte (laut Rentenauskunft)") {
+                    TextField("45", value: $points, format: .number).keyboardType(.decimalPad)
+                }
+                Section("Geplanter Rentenabschlag") {
+                    Picker("Abschlag", selection: $penalty) {
+                        Text("1 Jahr (3,6 %)").tag(0.036)
+                        Text("2 Jahre (7,2 %)").tag(0.072)
+                        Text("3 Jahre (10,8 %)").tag(0.108)
+                        Text("4 Jahre (14,4 %)").tag(0.144)
+                        Text("5 Jahre (18,0 %)").tag(0.18)
+                    }.pickerStyle(.menu)
+                }
+                Section("Einzahlungsjahr (Kaufpreis pro Punkt)") {
+                    Picker("Jahr", selection: $pointCost) {
+                        Text("2026 (~9.661 € / Punkt)").tag(9661.58)
+                        Text("2027 (~9.942 € / Punkt)").tag(9942.07)
+                    }.pickerStyle(.segmented)
+                }
+                Section {
+                    LabeledContent("Erforderlicher Nachkauf") {
+                        Text(String(format: "%.2f", locale: Locale(identifier: "de_DE"), missing) + " Punkte").bold()
+                    }
+                    LabeledContent("Notwendige Einmalzahlung (V0210)") {
+                        Text(Fmt.eur(cost)).font(.title3.weight(.heavy)).foregroundStyle(Theme.accent)
+                    }
+                }
+                Section {
+                    Button("In Steuer-Optimierung übernehmen (Sektion B)") {
+                        model.applyDrvDeficit(cost: jsRound(cost))
+                        dismiss()
+                    }
+                }
+            }
+            .navigationTitle("🎯 Rentenpunkte-Defizit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } } }
+        }
+        .presentationDetents([.large])
+    }
+}

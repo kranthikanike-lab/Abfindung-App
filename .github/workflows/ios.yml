@@ -1,0 +1,26 @@
+name: iOS build & test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build & test (iPhone simulator)
+        run: |
+          set -o pipefail
+          DEST=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone [0-9]+[^(]*' | sed 's/ *$//')
+          echo "Using simulator: $DEST"
+          xcodebuild test \
+            -project AbfindungApp.xcodeproj \
+            -scheme AbfindungApp \
+            -destination "platform=iOS Simulator,name=$DEST" \
+            CODE_SIGNING_ALLOWED=NO | tail -n 60
