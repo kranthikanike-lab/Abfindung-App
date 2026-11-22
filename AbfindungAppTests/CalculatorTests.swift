@@ -7,6 +7,12 @@ import XCTest
 /// They guard the Swift port against transcription errors. Tariff and rule tests below use hand-calculated values.
 final class CalculatorTests: XCTestCase {
 
+    // The assertions on labels and number formats expect German.
+    override func setUp() {
+        super.setUp()
+        Lang.shared.code = "de"
+    }
+
     private func eur(_ actual: Double, _ expected: Int, _ name: String,
                      file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertEqual(actual, Double(expected), accuracy: 1.5, name, file: file, line: line)

@@ -9,13 +9,13 @@ struct ContentView: View {
         @Bindable var sheets = AppSheets.shared
         TabView(selection: $m.selectedTab) {
             NavigationStack { InputsView() }
-                .tabItem { Label("Eingaben", systemImage: "slider.horizontal.3") }
+                .tabItem { Label(tr("Eingaben"), systemImage: "slider.horizontal.3") }
                 .tag(AppTab.inputs)
             NavigationStack { ResultsView() }
-                .tabItem { Label("Ergebnis", systemImage: "chart.pie") }
+                .tabItem { Label(tr("Ergebnis"), systemImage: "chart.pie") }
                 .tag(AppTab.results)
             NavigationStack { RunwayView() }
-                .tabItem { Label("Reichweite", systemImage: "hourglass") }
+                .tabItem { Label(tr("Reichweite"), systemImage: "hourglass") }
                 .tag(AppTab.runway)
             NavigationStack { CrossoverView() }
                 .tabItem { Label("Switch", systemImage: "arrow.left.arrow.right") }

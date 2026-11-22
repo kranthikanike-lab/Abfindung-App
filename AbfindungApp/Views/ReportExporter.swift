@@ -42,33 +42,33 @@ private struct ReportView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Abfindungs-Optimizer 2027 – Report").font(.title2.bold())
-            Text("Brutto-Monatsgehalt \(Fmt.eur(i.altesMonatsgehalt)) · Abfindung \(Fmt.eur(i.bruttoAbfindung)) · Frist \(i.fristMonate) Mon. · Sprinter: \(i.isTurbo ? "ja" : "nein")")
+            Text(tr("Brutto-Monatsgehalt \(Fmt.eur(i.altesMonatsgehalt)) · Abfindung \(Fmt.eur(i.bruttoAbfindung)) · Frist \(i.fristMonate) Mon. · Sprinter: \(i.isTurbo ? "ja" : tr("nein"))"))
                 .font(.caption).foregroundStyle(.gray)
             Divider()
-            row("Basis-Abfindung (Brutto)", Fmt.eur(r.abfNoTurbo))
+            row(tr("Basis-Abfindung (Brutto)"), Fmt.eur(r.abfNoTurbo))
             if r.praemieBrutto > 0 {
-                row("+ Sprinter-Prämie (Brutto)", "+ " + Fmt.eur(r.praemieBrutto))
-                row("= Gesamt-Abfindung (Brutto)", Fmt.eur(r.effectiveAbfindung))
+                row(tr("+ Sprinter-Prämie (Brutto)"), "+ " + Fmt.eur(r.praemieBrutto))
+                row(tr("= Gesamt-Abfindung (Brutto)"), Fmt.eur(r.effectiveAbfindung))
             }
-            if r.bav > 0 { row("− bAV-Direktumwandlung", "– " + Fmt.eur(r.bav)) }
-            if r.drvRaw > 0 { row("− AG-Direktzahlung DRV (V0210)", "– " + Fmt.eur(r.drvRaw)) }
-            row("= Steuerpflichtige Bar-Abfindung", Fmt.eur(r.barBruttoTaxable))
-            row("− Lohnsteuer\(i.kirchensteuer > 0 ? " + Soli + KiSt" : " + Soli")-Einbehalt (\(Fmt.pct(r.rateUpfront)))", "– " + Fmt.eur(r.einbehalten))
-            row("= Sofort-Netto (2027)", Fmt.eur(r.netVoll), bold: true)
+            if r.bav > 0 { row(tr("− bAV-Direktumwandlung"), "– " + Fmt.eur(r.bav)) }
+            if r.drvRaw > 0 { row(tr("− AG-Direktzahlung DRV (V0210)"), "– " + Fmt.eur(r.drvRaw)) }
+            row(tr("= Steuerpflichtige Bar-Abfindung"), Fmt.eur(r.barBruttoTaxable))
+            row(tr("− Lohnsteuer\(i.kirchensteuer > 0 ? tr(" + Soli + KiSt") : " + Soli")-Einbehalt (\(Fmt.pct(r.rateUpfront)))"), "– " + Fmt.eur(r.einbehalten))
+            row(tr("= Sofort-Netto (2027)"), Fmt.eur(r.netVoll), bold: true)
             Divider()
-            row("Endgültige Steuer auf Abfindung (\(Fmt.pct(r.rateFinal)))", "– " + Fmt.eur(r.finalAbfTax))
-            row(r.erstattung >= 0 ? "Erstattung Finanzamt (Okt. 2028)" : "Nachzahlung Finanzamt (Okt. 2028)", Fmt.signedEur(r.erstattung))
-            row("= Optimal-Netto Abfindung", Fmt.eur(r.netFf), bold: true)
+            row(tr("Endgültige Steuer auf Abfindung (\(Fmt.pct(r.rateFinal)))"), "– " + Fmt.eur(r.finalAbfTax))
+            row(r.erstattung >= 0 ? tr("Erstattung Finanzamt (Okt. 2028)") : tr("Nachzahlung Finanzamt (Okt. 2028)"), Fmt.signedEur(r.erstattung))
+            row(tr("= Optimal-Netto Abfindung"), Fmt.eur(r.netFf), bold: true)
             Divider()
-            if r.ruerup > 0 { row("Rürup-Einzahlung", "– " + Fmt.eur(r.ruerup)) }
-            if r.iabInvest > 0 { row("PV-IAB Investition", "– " + Fmt.eur(r.iabInvest)) }
-            row("Konto-Stand 31.12.2027", Fmt.eur(r.liq27))
-            row("Konto-Stand Ende 2028", Fmt.eur(r.liq28), bold: true)
+            if r.ruerup > 0 { row(tr("Rürup-Einzahlung"), "– " + Fmt.eur(r.ruerup)) }
+            if r.iabInvest > 0 { row(tr("PV-IAB Investition"), "– " + Fmt.eur(r.iabInvest)) }
+            row(tr("Konto-Stand 31.12.2027"), Fmt.eur(r.liq27))
+            row(tr("Konto-Stand Ende 2028"), Fmt.eur(r.liq28), bold: true)
             if i.isTurbo {
                 Divider()
-                row("Sprinter-Bilanz (Gewinne − Kosten)", Fmt.signedEur(r.sprinterNetDiff), bold: true)
+                row(tr("Sprinter-Bilanz (Gewinne − Kosten)"), Fmt.signedEur(r.sprinterNetDiff), bold: true)
             }
-            Text("Unverbindliche Modellrechnung ohne Gewähr. Ersetzt keine Steuer- oder Rechtsberatung.")
+            Text(tr("Unverbindliche Modellrechnung ohne Gewähr. Ersetzt keine Steuer- oder Rechtsberatung."))
                 .font(.caption2).foregroundStyle(.gray).padding(.top, 8)
         }
         .padding(28)

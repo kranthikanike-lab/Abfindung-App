@@ -35,7 +35,7 @@ struct ValueBubble: View {
 
 struct ChartTouchHint: View {
     var body: some View {
-        Text("Tippen oder ziehen, um Werte zu sehen")
+        Text(tr("Tippen oder ziehen, um Werte zu sehen"))
             .font(.caption2).foregroundStyle(.secondary)
     }
 }
@@ -94,7 +94,7 @@ struct DonutChart: View {
                 if let frame = proxy.plotFrame {
                     let rect = geo[frame]
                     VStack(spacing: 2) {
-                        Text(selected?.name ?? "Gesamt").font(.caption2).foregroundStyle(.secondary)
+                        Text(selected?.name ?? tr("Gesamt")).font(.caption2).foregroundStyle(.secondary)
                         Text(Fmt.eur(selected?.value ?? total)).font(.subheadline.weight(.bold)).monospacedDigit()
                         if let s = selected, total > 0 {
                             Text(Fmt.pct(max(0, s.value) / total * 100)).font(.caption2).foregroundStyle(s.color)
@@ -113,12 +113,12 @@ struct DonutChart: View {
 struct AgChart: View {
     let r: Results
     var body: some View {
-        let slices = [DonutChart.Slice(name: "Sofort-Netto", value: r.netVoll, color: Theme.blue),
-                      DonutChart.Slice(name: "Lohnsteuer-Einbehalt", value: r.einbehalten, color: Theme.danger)]
+        let slices = [DonutChart.Slice(name: tr("Sofort-Netto"), value: r.netVoll, color: Theme.blue),
+                      DonutChart.Slice(name: tr("Lohnsteuer-Einbehalt"), value: r.einbehalten, color: Theme.danger)]
         VStack(spacing: 8) {
             DonutChart(slices: slices)
-            LegendRow(items: [("Sofort-Netto", Theme.blue, Fmt.eur(r.netVoll)),
-                              ("Lohnsteuer-Einbehalt", Theme.danger, Fmt.eur(r.einbehalten))])
+            LegendRow(items: [(tr("Sofort-Netto"), Theme.blue, Fmt.eur(r.netVoll)),
+                              (tr("Lohnsteuer-Einbehalt"), Theme.danger, Fmt.eur(r.einbehalten))])
             ChartTouchHint()
         }
     }
@@ -127,12 +127,12 @@ struct AgChart: View {
 struct FaChart: View {
     let r: Results
     var body: some View {
-        let slices = [DonutChart.Slice(name: "Optimal-Netto", value: r.netFf, color: Theme.success),
-                      DonutChart.Slice(name: "Endgültige Steuer", value: r.finalAbfTax, color: Theme.warning)]
+        let slices = [DonutChart.Slice(name: tr("Optimal-Netto"), value: r.netFf, color: Theme.success),
+                      DonutChart.Slice(name: tr("Endgültige Steuer"), value: r.finalAbfTax, color: Theme.warning)]
         VStack(spacing: 8) {
             DonutChart(slices: slices)
-            LegendRow(items: [("Optimal-Netto", Theme.success, Fmt.eur(r.netFf)),
-                              ("Endgültige Steuer", Theme.warning, Fmt.eur(r.finalAbfTax))])
+            LegendRow(items: [(tr("Optimal-Netto"), Theme.success, Fmt.eur(r.netFf)),
+                              (tr("Endgültige Steuer"), Theme.warning, Fmt.eur(r.finalAbfTax))])
             ChartTouchHint()
         }
     }
@@ -148,12 +148,12 @@ struct ErstattungChart: View {
 
     private var shown: [Bar] {
         let all = [
-            Bar(name: "Fünftel-Basis", value: r.baseFuenftelRefund, color: Theme.blue),
+            Bar(name: tr("Fünftel-Basis"), value: r.baseFuenftelRefund, color: Theme.blue),
             Bar(name: "DRV (50% Fünftel)", value: r.drvFuenftelRefund2028, color: Theme.cyan),
             Bar(name: "Rürup", value: r.ruerupSaving.savings, color: Theme.success),
             Bar(name: "PV-IAB", value: r.iabSaving.savings, color: Theme.purple)
         ]
-        return all.filter { $0.value != 0 || $0.name == "Fünftel-Basis" }
+        return all.filter { $0.value != 0 || $0.name == tr("Fünftel-Basis") }
     }
 
     var body: some View {
@@ -170,7 +170,7 @@ struct ErstattungChart: View {
                     RuleMark(x: .value("Quelle", sel))
                         .foregroundStyle(Color.secondary.opacity(0.3))
                         .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            ValueBubble(title: "FA-Erstattung Okt. 2028",
+                            ValueBubble(title: tr("FA-Erstattung Okt. 2028"),
                                         rows: [.init(label: b.name, value: Fmt.signedEur(b.value), color: b.color)])
                         }
                 }
@@ -200,22 +200,22 @@ struct SprinterWaterfall: View {
     private var bars: [Bar] {
         var run = 0.0
         var out: [Bar] = []
-        out.append(Bar(name: "+ Netto-Prämie", lo: 0, hi: r.isolatedNettoPraemie,
+        out.append(Bar(name: tr("+ Netto-Prämie"), lo: 0, hi: r.isolatedNettoPraemie,
                        signed: r.isolatedNettoPraemie, color: Theme.blue))
         run += r.isolatedNettoPraemie
-        out.append(Bar(name: "+ Fünftel-Steuer", lo: run, hi: run + r.pureFuenftelAdvantage,
+        out.append(Bar(name: tr("+ Fünftel-Steuer"), lo: run, hi: run + r.pureFuenftelAdvantage,
                        signed: r.pureFuenftelAdvantage, color: Theme.success))
         run += r.pureFuenftelAdvantage
-        out.append(Bar(name: "− Netto-Gehalt", lo: run - r.lostNetSalary, hi: run,
+        out.append(Bar(name: tr("− Netto-Gehalt"), lo: run - r.lostNetSalary, hi: run,
                        signed: -r.lostNetSalary, color: Theme.danger))
         run -= r.lostNetSalary
-        out.append(Bar(name: "− GKV/PV Lücke", lo: run - r.gkvTurboSim, hi: run,
+        out.append(Bar(name: tr("− GKV/PV Lücke"), lo: run - r.gkvTurboSim, hi: run,
                        signed: -r.gkvTurboSim, color: Theme.orange))
         run -= r.gkvTurboSim
         let rvAlg = r.rvSim + r.alg1Sim
-        out.append(Bar(name: "− RV & ALG-1", lo: run - rvAlg, hi: run, signed: -rvAlg, color: Theme.yellow))
+        out.append(Bar(name: tr("− RV & ALG-1"), lo: run - rvAlg, hi: run, signed: -rvAlg, color: Theme.yellow))
         let d = r.sprinterNetDiff
-        out.append(Bar(name: "= ECHTER VORTEIL", lo: min(0, d), hi: max(0, d), signed: d,
+        out.append(Bar(name: tr("= ECHTER VORTEIL"), lo: min(0, d), hi: max(0, d), signed: d,
                        color: d >= 0 ? Theme.success : Theme.danger))
         return out
     }
@@ -234,7 +234,7 @@ struct SprinterWaterfall: View {
                     RuleMark(y: .value("Posten", sel))
                         .foregroundStyle(Color.secondary.opacity(0.25))
                         .annotation(position: .trailing, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            ValueBubble(title: "Sprinter-Bilanz",
+                            ValueBubble(title: tr("Sprinter-Bilanz"),
                                         rows: [.init(label: b.name, value: Fmt.signedEur(b.signed), color: b.color)])
                         }
                 }
@@ -252,11 +252,11 @@ struct SprinterDetails: View {
     let r: Results
     @State private var open = false
     var body: some View {
-        DisclosureGroup("📊 Sprinter-Bilanz & Wasserfall", isExpanded: $open) {
+        DisclosureGroup(tr("📊 Sprinter-Bilanz & Wasserfall"), isExpanded: $open) {
             VStack(spacing: 8) {
-                TableRow(label: "+ Gewinne (Prämie & Steuer)", value: "+ " + Fmt.eur(r.sprinterGains), color: Theme.success)
-                TableRow(label: "− Kosten (Gehalt, GKV, RV/ALG)", value: "− " + Fmt.eur(r.sprinterLosses), color: Theme.danger)
-                TableRow(label: "= Echter Sprinter-Vorteil", value: Fmt.signedEur(r.sprinterNetDiff),
+                TableRow(label: tr("+ Gewinne (Prämie & Steuer)"), value: "+ " + Fmt.eur(r.sprinterGains), color: Theme.success)
+                TableRow(label: tr("− Kosten (Gehalt, GKV, RV/ALG)"), value: "− " + Fmt.eur(r.sprinterLosses), color: Theme.danger)
+                TableRow(label: tr("= Echter Sprinter-Vorteil"), value: Fmt.signedEur(r.sprinterNetDiff),
                          color: r.sprinterNetDiff >= 0 ? Theme.success : Theme.danger, bold: true)
                 SprinterWaterfall(r: r)
             }.padding(.top, 8)
@@ -312,7 +312,7 @@ struct ComparisonAreaChart: View {
             ValueBubble.Row(label: stdName, value: stdText, color: Theme.blue)
         ]
         if let a = sprValue, let b = stdValue {
-            rows.append(ValueBubble.Row(label: "Differenz", value: Fmt.signedEur(a - b),
+            rows.append(ValueBubble.Row(label: tr("Differenz"), value: Fmt.signedEur(a - b),
                                         color: a >= b ? Theme.success : Theme.warning))
         }
         return ValueBubble(title: monthLabel(idx), rows: rows)
@@ -441,19 +441,19 @@ struct ComparisonAreaChart: View {
     private var legend: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 12) {
-                swatch(Theme.blue.opacity(0.5), "Gemeinsamer Stand")
-                swatch(Theme.success.opacity(0.75), "\(sprName) vorn")
-                swatch(Theme.warning.opacity(0.75), "\(stdName) vorn")
+                swatch(Theme.blue.opacity(0.5), tr("Gemeinsamer Stand"))
+                swatch(Theme.success.opacity(0.75), tr("\(sprName) vorn"))
+                swatch(Theme.warning.opacity(0.75), tr("\(stdName) vorn"))
                 Spacer(minLength: 0)
             }
             HStack(spacing: 12) {
                 HStack(spacing: 4) {
                     Rectangle().fill(Theme.success).frame(width: 12, height: 3)
-                    Text("Linie \(sprName)").font(.caption)
+                    Text(tr("Linie \(sprName)")).font(.caption)
                 }
                 HStack(spacing: 4) {
                     Rectangle().fill(Theme.blue).frame(width: 12, height: 3)
-                    Text("Linie \(stdName)").font(.caption)
+                    Text(tr("Linie \(stdName)")).font(.caption)
                 }
                 if let label = markerLabel {
                     HStack(spacing: 4) {
@@ -501,7 +501,7 @@ struct PhaseChart: View {
         var months: Int { to - from }
     }
 
-    private let phases = ["1. Gehaltsphase", "2. Ruhenszeit (GKV)", "3. ALG-1 Bezug", "4. Privatiers-Phase"]
+    private let phases = [tr("1. Gehaltsphase"), tr("2. Ruhenszeit (GKV)"), tr("3. ALG-1 Bezug"), tr("4. Privatiers-Phase")]
     private let colors: [Color] = [Theme.indigo, Theme.warning, Theme.cyan, Theme.success]
 
     private func segs(_ name: String, _ r: RunwayResult) -> [Seg] {
@@ -520,7 +520,7 @@ struct PhaseChart: View {
         let mine: [Seg] = all.filter { $0.scenario == scenario }
         for (idx, seg) in mine.enumerated() {
             let text: String = seg.months > 0
-                ? "\(monthLabelShort(seg.from)) – \(monthLabelShort(seg.to - 1)) · \(seg.months) Mon."
+                ? tr("\(monthLabelShort(seg.from)) – \(monthLabelShort(seg.to - 1)) · \(seg.months) Mon.")
                 : "–"
             rows.append(ValueBubble.Row(label: seg.phase, value: text, color: colors[idx]))
         }
@@ -528,7 +528,7 @@ struct PhaseChart: View {
     }
 
     var body: some View {
-        let all: [Seg] = segs("Standard (Frist)", std) + segs("Sprinter (Sofort)", spr)
+        let all: [Seg] = segs(tr("Standard (Frist)"), std) + segs(tr("Sprinter (Sofort)"), spr)
         let drawn: [Seg] = all.filter { $0.months > 0 }
         let endIndex: Int = max(startIndex + 1, all.map { $0.to }.max() ?? startIndex + 1)
         VStack(spacing: 8) {
@@ -573,7 +573,7 @@ struct RunwayBalanceChart: View {
     private let faMonth = 21   // Oct 2028
 
     private func endText(_ r: RunwayResult) -> String {
-        r.exhaustedMonth < 240 ? monthLabel(r.curve.count - 1) : "> 20 Jahre"
+        r.exhaustedMonth < 240 ? monthLabel(r.curve.count - 1) : tr("> 20 Jahre")
     }
 
     private var datesTable: some View {
@@ -584,17 +584,17 @@ struct RunwayBalanceChart: View {
                 Text("Standard").font(.caption.weight(.bold)).foregroundStyle(Theme.blue)
             }
             GridRow {
-                Text("Auszahlung").font(.caption)
+                Text(tr("Auszahlung")).font(.caption)
                 Text(monthLabel(min(spr.salMonthsTotal, 11))).font(.caption).monospacedDigit()
                 Text(monthLabel(min(std.salMonthsTotal, 11))).font(.caption).monospacedDigit()
             }
             GridRow {
-                Text("ALG 1 endet").font(.caption)
+                Text(tr("ALG 1 endet")).font(.caption)
                 Text(monthLabel(spr.salMonthsTotal + spr.dynamicRuhens + spr.algMonths)).font(.caption).monospacedDigit()
                 Text(monthLabel(std.salMonthsTotal + std.dynamicRuhens + std.algMonths)).font(.caption).monospacedDigit()
             }
             GridRow {
-                Text("Geld aufgebraucht").font(.caption)
+                Text(tr("Geld aufgebraucht")).font(.caption)
                 Text(endText(spr)).font(.caption.weight(.semibold)).monospacedDigit()
                 Text(endText(std)).font(.caption.weight(.semibold)).monospacedDigit()
             }

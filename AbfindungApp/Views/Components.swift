@@ -89,12 +89,19 @@ struct InfoButton: View {
         .sheet(isPresented: $show) {
             NavigationStack {
                 ScrollView {
-                    Text(LocalizedStringKey(info.text)).padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(LocalizedStringKey(info.text))
+                        if Lang.shared.isEnglish {
+                            Text(tr("Hinweis: Die Erläuterungstexte sind derzeit nur auf Deutsch verfügbar."))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .navigationTitle(info.title)
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { show = false } } }
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button(tr("Fertig")) { show = false } } }
             }
             .presentationDetents([.medium, .large])
         }
@@ -336,7 +343,7 @@ struct ProLockedCard: View {
             Button {
                 AppSheets.shared.showUnlock = true
             } label: {
-                Label("Pro freischalten", systemImage: "lock.open")
+                Label(tr("Pro freischalten"), systemImage: "lock.open")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -351,7 +358,7 @@ struct ProLockedView: View {
         ScrollView {
             VStack(spacing: 14) {
                 ProLockedCard(feature: feature)
-                Card(title: "Beispielrechnung") {
+                Card(title: tr("Beispielrechnung")) {
                     Text(feature.example).font(.footnote).foregroundStyle(.secondary)
                 }
             }

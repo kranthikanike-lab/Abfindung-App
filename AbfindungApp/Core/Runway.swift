@@ -12,15 +12,21 @@ struct RunwayResult {
     var curve: [Double]
 }
 
+private var monthNames: [String] {
+    Lang.shared.isEnglish
+        ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        : ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+}
+
 func monthLabel(_ offsetFromJan27: Int) -> String {
-    let names = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    let names = monthNames
     let total = max(0, offsetFromJan27)
     return "\(names[total % 12]) \(2027 + total / 12)"
 }
 
 /// Compact label for crowded axes, e.g. "Feb 27".
 func monthLabelShort(_ offsetFromJan27: Int) -> String {
-    let names = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    let names = monthNames
     let total = max(0, offsetFromJan27)
     let yy = (2027 + total / 12) % 100
     return "\(names[total % 12]) \(String(format: "%02d", yy))"

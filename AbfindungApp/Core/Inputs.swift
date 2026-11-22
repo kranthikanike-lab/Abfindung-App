@@ -5,9 +5,9 @@ enum GkvMode: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .min: return "Freiwillig GKV Mindestbeitrag (~280 €/Mo)"
-        case .fam: return "Familienversicherung Partner/in (0 €/Mo)"
-        case .custom: return "Individuell (€/Mo)"
+        case .min: return tr("Freiwillig GKV Mindestbeitrag (~280 €/Mo)")
+        case .fam: return tr("Familienversicherung Partner/in (0 €/Mo)")
+        case .custom: return tr("Individuell (€/Mo)")
         }
     }
 }

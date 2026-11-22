@@ -3,7 +3,7 @@ import SwiftUI
 enum ThemeChoice: String, CaseIterable, Identifiable {
     case system, light, dark
     var id: String { rawValue }
-    var label: String { self == .system ? "System" : (self == .light ? "Hell" : "Dunkel") }
+    var label: String { self == .system ? tr("System") : (self == .light ? tr("Hell") : tr("Dunkel")) }
     var scheme: ColorScheme? { self == .light ? .light : (self == .dark ? .dark : nil) }
 }
 
@@ -14,21 +14,25 @@ struct AppToolbar: ToolbarContent {
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Menu {
-                Section("Schnell-Szenarien") {
-                    Button("\(model.isPro ? "" : "🔒 ")🚀 Sprinter + Rürup Sweet-Spot") { model.apply(.sprinterSweet) }
-                    Button("\(model.isPro ? "" : "🔒 ")🧭 Cash-Burn & Reichweite") { model.apply(.runwayCheck) }
-                    Button("\(model.isPro ? "" : "🔒 ")📉 Gehalts-Switch (Break-Even)") { model.apply(.gehaltsSwitch) }
+                Section(tr("Schnell-Szenarien")) {
+                    Button(tr("\(model.isPro ? "" : "🔒 ")🚀 Sprinter + Rürup Sweet-Spot")) { model.apply(.sprinterSweet) }
+                    Button(tr("\(model.isPro ? "" : "🔒 ")🧭 Cash-Burn & Reichweite")) { model.apply(.runwayCheck) }
+                    Button(tr("\(model.isPro ? "" : "🔒 ")📉 Gehalts-Switch (Break-Even)")) { model.apply(.gehaltsSwitch) }
                     Button("↺ Reset", role: .destructive) { model.apply(.reset) }
                 }
             } label: { Image(systemName: "bolt.circle") }
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                Picker("Darstellung", selection: $themeRaw) {
+                Picker(tr("Darstellung"), selection: $themeRaw) {
                     ForEach(ThemeChoice.allCases) { Text($0.label).tag($0.rawValue) }
                 }
+                Picker("Sprache / Language", selection: Binding(get: { Lang.shared.code }, set: { Lang.shared.code = $0 })) {
+                    Text("Deutsch").tag("de")
+                    Text("English").tag("en")
+                }
                 Divider()
-                Button { AppSheets.shared.showLegal = true } label: { Label("Rechengrößen & Recht 2027", systemImage: "info.circle") }
+                Button { AppSheets.shared.showLegal = true } label: { Label(tr("Rechengrößen & Recht 2027"), systemImage: "info.circle") }
                 if model.isPro {
                     ShareLink(item: ReportFile(results: model.results, inputs: model.inputs),
                               preview: SharePreview("Abfindungs-Report.pdf")) {
@@ -41,7 +45,7 @@ struct AppToolbar: ToolbarContent {
                 }
                 Divider()
                 Button { AppSheets.shared.showUnlock = true } label: {
-                    Label(model.isPro ? "Pro aktiv" : "Pro freischalten", systemImage: model.isPro ? "checkmark.seal" : "lock.open")
+                    Label(model.isPro ? tr("Pro aktiv") : tr("Pro freischalten"), systemImage: model.isPro ? "checkmark.seal" : "lock.open")
                 }
             } label: { Image(systemName: "ellipsis.circle") }
         }
@@ -60,12 +64,12 @@ struct StickyKPIBar: View {
     var body: some View {
         let r = model.results
         HStack {
-            item("Sofort-Netto", Fmt.eur(r.netVoll), .primary)
+            item(tr("Sofort-Netto"), Fmt.eur(r.netVoll), .primary)
             Divider().frame(height: 28)
-            item(r.erstattung >= 0 ? "FA Okt. 2028" : "Nachzahlung FA", Fmt.signedEur(r.erstattung),
+            item(r.erstattung >= 0 ? tr("FA Okt. 2028") : tr("Nachzahlung FA"), Fmt.signedEur(r.erstattung),
                  r.erstattung >= 0 ? Theme.success : Theme.danger)
             Divider().frame(height: 28)
-            item("Optimal-Netto", Fmt.eur(r.netFf), Theme.accent)
+            item(tr("Optimal-Netto"), Fmt.eur(r.netFf), Theme.accent)
         }
         .padding(.vertical, 8).padding(.horizontal, 12)
         .background(.ultraThinMaterial)
@@ -84,13 +88,19 @@ struct LegalSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if Lang.shared.isEnglish {
+                    Section {
+                        Text(tr("Hinweis: Die Erläuterungstexte sind derzeit nur auf Deutsch verfügbar."))
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
                 ForEach(Info.legal, id: \.0) { item in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.0).font(.subheadline.weight(.semibold))
                         Text(item.1).font(.footnote).foregroundStyle(.secondary)
                     }.padding(.vertical, 2)
                 }
-                Section("Annahmen & Stand") {
+                Section(tr("Annahmen & Stand")) {
                     ForEach(Info.assumptions, id: \.0) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.0).font(.subheadline.weight(.semibold))
@@ -99,13 +109,13 @@ struct LegalSheet: View {
                     }
                 }
                 Section {
-                    Text("Unverbindliche Modellrechnung ohne Gewähr. Ersetzt keine Steuer- oder Rechtsberatung.")
+                    Text(tr("Unverbindliche Modellrechnung ohne Gewähr. Ersetzt keine Steuer- oder Rechtsberatung."))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Rechengrößen & Recht 2027")
+            .navigationTitle(tr("Rechengrößen & Recht 2027"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Schließen") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(tr("Schließen")) { dismiss() } } }
         }
     }
 }
@@ -124,44 +134,44 @@ struct DrvDeficitSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Berechnen Sie die Einmalzahlung, die nötig ist, um den lebenslangen Rentenabschlag (0,3 % je Monat, höchstens 14,4 % bei 4 Jahren Frührente) auszugleichen. Maßgeblich sind die Rentenpunkte, die Sie bei Rentenbeginn voraussichtlich haben.")
+                    Text(tr("Berechnen Sie die Einmalzahlung, die nötig ist, um den lebenslangen Rentenabschlag (0,3 % je Monat, höchstens 14,4 % bei 4 Jahren Frührente) auszugleichen. Maßgeblich sind die Rentenpunkte, die Sie bei Rentenbeginn voraussichtlich haben."))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                Section("Rentenpunkte bei Rentenbeginn (Prognose laut Rentenauskunft)") {
+                Section(tr("Rentenpunkte bei Rentenbeginn (Prognose laut Rentenauskunft)")) {
                     TextField("45", value: $points, format: .number).keyboardType(.decimalPad)
                 }
-                Section("Geplanter Rentenabschlag") {
-                    Picker("Abschlag", selection: $penalty) {
-                        Text("1 Jahr (3,6 %)").tag(0.036)
-                        Text("2 Jahre (7,2 %)").tag(0.072)
-                        Text("3 Jahre (10,8 %)").tag(0.108)
-                        Text("4 Jahre (14,4 %)").tag(0.144)
+                Section(tr("Geplanter Rentenabschlag")) {
+                    Picker(tr("Abschlag"), selection: $penalty) {
+                        Text(tr("1 Jahr (3,6 %)")).tag(0.036)
+                        Text(tr("2 Jahre (7,2 %)")).tag(0.072)
+                        Text(tr("3 Jahre (10,8 %)")).tag(0.108)
+                        Text(tr("4 Jahre (14,4 %)")).tag(0.144)
                     }.pickerStyle(.menu)
                 }
-                Section("Einzahlungsjahr (Kaufpreis pro Punkt)") {
-                    Picker("Jahr", selection: $pointCost) {
-                        Text("2026 (~9.661 € / Punkt)").tag(9661.58)
-                        Text("2027 (~9.942 € / Punkt)").tag(9942.07)
+                Section(tr("Einzahlungsjahr (Kaufpreis pro Punkt)")) {
+                    Picker(tr("Jahr"), selection: $pointCost) {
+                        Text(tr("2026 (~9.661 € / Punkt)")).tag(9661.58)
+                        Text(tr("2027 (~9.942 € / Punkt)")).tag(9942.07)
                     }.pickerStyle(.segmented)
                 }
                 Section {
-                    LabeledContent("Erforderlicher Nachkauf") {
-                        Text(String(format: "%.2f", locale: Locale(identifier: "de_DE"), missing) + " Punkte").bold()
+                    LabeledContent(tr("Erforderlicher Nachkauf")) {
+                        Text(Fmt.decimal(missing, digits: 2) + tr(" Punkte")).bold()
                     }
-                    LabeledContent("Notwendige Einmalzahlung (V0210)") {
+                    LabeledContent(tr("Notwendige Einmalzahlung (V0210)")) {
                         Text(Fmt.eur(cost)).font(.title3.weight(.heavy)).foregroundStyle(Theme.accent)
                     }
                 }
                 Section {
-                    Button("In Steuer-Optimierung übernehmen (Sektion B)") {
+                    Button(tr("In Steuer-Optimierung übernehmen (Sektion B)")) {
                         model.applyDrvDeficit(cost: jsRound(cost))
                         dismiss()
                     }
                 }
             }
-            .navigationTitle("🎯 Rentenpunkte-Defizit")
+            .navigationTitle(tr("🎯 Rentenpunkte-Defizit"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(tr("Abbrechen")) { dismiss() } } }
         }
         .presentationDetents([.large])
     }
@@ -179,11 +189,11 @@ struct UnlockSheet: View {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack { Text("Abfindungs-Optimizer Pro").font(.title3.weight(.bold)); ProBadge() }
-                        Text("Einmaliger Kauf für 2027. Der Preis wird vor der Veröffentlichung festgelegt.")
+                        Text(tr("Einmaliger Kauf für 2027. Der Preis wird vor der Veröffentlichung festgelegt."))
                             .font(.footnote).foregroundStyle(.secondary)
                     }.padding(.vertical, 4)
                 }
-                Section("Enthalten in Pro") {
+                Section(tr("Enthalten in Pro")) {
                     ForEach(Feature.allCases) { f in
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: f.icon).frame(width: 24).foregroundStyle(Theme.accent)
@@ -194,25 +204,25 @@ struct UnlockSheet: View {
                         }.padding(.vertical, 2)
                     }
                 }
-                Section("Immer kostenlos (Basic)") {
-                    Text("Abfindung, Lohnsteuer-Einbehalt, Fünftelregelung und Erstattung, Kinder, Splitting, Kirchensteuer, Sprinter-Option, Ergebnistabellen.")
+                Section(tr("Immer kostenlos (Basic)")) {
+                    Text(tr("Abfindung, Lohnsteuer-Einbehalt, Fünftelregelung und Erstattung, Kinder, Splitting, Kirchensteuer, Sprinter-Option, Ergebnistabellen."))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 if Entitlements.testMode {
                     Section {
                         if model.isPro {
-                            Button("Auf Basic zurücksetzen (Testmodus)", role: .destructive) { model.isPro = false; dismiss() }
+                            Button(tr("Auf Basic zurücksetzen (Testmodus)"), role: .destructive) { model.isPro = false; dismiss() }
                         } else {
-                            Button("Pro freischalten (Testmodus)") { model.isPro = true; dismiss() }
+                            Button(tr("Pro freischalten (Testmodus)")) { model.isPro = true; dismiss() }
                         }
                     } footer: {
-                        Text("Testmodus: In der veröffentlichten Version wird dies durch den Einmalkauf über den App Store ersetzt.")
+                        Text(tr("Testmodus: In der veröffentlichten Version wird dies durch den Einmalkauf über den App Store ersetzt."))
                     }
                 }
             }
             .navigationTitle("Pro 2027")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(tr("Schließen")) { dismiss() } } }
         }
     }
 }
