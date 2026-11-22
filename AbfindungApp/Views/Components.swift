@@ -8,9 +8,9 @@ extension Color {
 }
 
 enum Theme {
-    // App accent: teal (deeper in light mode, brighter in dark mode for contrast).
+    // App accent: teal in light mode; dark mode keeps the original blue and black look.
     static let accent = Color(light: Color(red: 0.059, green: 0.463, blue: 0.431),
-                              dark: Color(red: 0.176, green: 0.831, blue: 0.749))
+                              dark: Color(red: 0.231, green: 0.510, blue: 0.965))
     // Data series blue (e.g. Standard scenario). Kept separate from the teal accent so series stay distinguishable.
     static let blue = Color(light: Color(red: 0.145, green: 0.388, blue: 0.922),
                             dark: Color(red: 0.231, green: 0.510, blue: 0.965))
@@ -35,7 +35,10 @@ enum Theme {
     static let field = Color(light: Color(red: 0.945, green: 0.965, blue: 0.965),
                              dark: Color(.tertiarySystemGroupedBackground))
     static let border = Color(light: Color(red: 0.059, green: 0.463, blue: 0.431).opacity(0.14),
-                              dark: Color.white.opacity(0.08))
+                              dark: Color.clear)
+
+    /// Horizontal space between the screen edge and the cards.
+    static let pageMargin: CGFloat = 6
 }
 
 extension View {
@@ -352,7 +355,8 @@ struct ProLockedView: View {
                     Text(feature.example).font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            .padding()
+            .padding(.horizontal, Theme.pageMargin)
+            .padding(.vertical, 12)
         }
         .background(Theme.pageBackground)
     }

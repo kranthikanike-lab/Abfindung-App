@@ -24,7 +24,8 @@ struct InputsView: View {
                     ProLockedCard(feature: .taxOptimization)
                 }
             }
-            .padding()
+            .padding(.horizontal, Theme.pageMargin)
+            .padding(.vertical, 12)
             .padding(.bottom, 70)
         }
         .scrollDismissesKeyboard(.interactively)

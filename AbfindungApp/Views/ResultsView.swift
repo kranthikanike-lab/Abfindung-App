@@ -86,7 +86,8 @@ struct ResultsView: View {
                              note: "Ohne gebundenes bAV/DRV/Rürup/PV-Vermögen", bold: true)
                 }
             }
-            .padding()
+            .padding(.horizontal, Theme.pageMargin)
+            .padding(.vertical, 12)
         }
         .background(Theme.pageBackground)
         .navigationTitle("Ergebnis")

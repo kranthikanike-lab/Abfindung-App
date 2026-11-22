@@ -74,7 +74,8 @@ struct RunwayProContent: View {
                     }
                 }
             }
-            .padding()
+            .padding(.horizontal, Theme.pageMargin)
+            .padding(.vertical, 12)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Theme.pageBackground)
@@ -160,7 +161,8 @@ struct CrossoverProContent: View {
                     }
                 }
             }
-            .padding()
+            .padding(.horizontal, Theme.pageMargin)
+            .padding(.vertical, 12)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Theme.pageBackground)
