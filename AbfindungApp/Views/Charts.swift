@@ -20,14 +20,14 @@ struct ValueBubble: View {
             ForEach(rows) { row in
                 HStack(spacing: 5) {
                     Circle().fill(row.color).frame(width: 7, height: 7)
-                    Text(row.label).font(.caption2)
+                    Text(row.label).font(.caption2).lineLimit(1).minimumScaleFactor(0.8)
                     Spacer(minLength: 6)
-                    Text(row.value).font(.caption2.weight(.bold)).monospacedDigit()
+                    Text(row.value).font(.caption2.weight(.bold)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
                 }
             }
         }
         .padding(8)
-        .frame(minWidth: 120, maxWidth: 230)
+        .frame(minWidth: 120, maxWidth: 270)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.25), lineWidth: 0.5))
     }
@@ -345,44 +345,58 @@ struct MonthLineChart: View {
 
 // MARK: - Reichweite
 
-/// Life-phase timeline (Gehalt, Ruhenszeit, ALG 1, Privatiers) with touch details.
+/// Life-phase timeline in calendar months. It starts at the month chosen in the inputs
+/// ("Start Frist / Sprinter-Austritt"), so Standard works through the notice period while Sprinter leaves right away.
 struct PhaseChart: View {
     let std: RunwayResult
     let spr: RunwayResult
+    /// Months since Jan 2027 where the timeline starts (= chosen start month).
+    let startIndex: Int
     @State private var selectedScenario: String?
 
     private struct Seg: Identifiable {
         var id: String { scenario + phase }
         let scenario: String
         let phase: String
-        let months: Int
+        let from: Int
+        let to: Int
+        var months: Int { to - from }
     }
 
     private let phases = ["1. Gehaltsphase", "2. Ruhenszeit (GKV)", "3. ALG-1 Bezug", "4. Privatiers-Phase"]
-    private let colors = [Theme.indigo, Theme.warning, Theme.cyan, Theme.success]
+    private let colors: [Color] = [Theme.indigo, Theme.warning, Theme.cyan, Theme.success]
 
     private func segs(_ name: String, _ r: RunwayResult) -> [Seg] {
-        [Seg(scenario: name, phase: phases[0], months: r.salMonthsTotal),
-         Seg(scenario: name, phase: phases[1], months: r.dynamicRuhens),
-         Seg(scenario: name, phase: phases[2], months: r.algMonths),
-         Seg(scenario: name, phase: phases[3], months: r.postPhaseMonths)]
+        let lengths: [Int] = [max(0, r.salMonthsTotal - startIndex), r.dynamicRuhens, r.algMonths, r.postPhaseMonths]
+        var out: [Seg] = []
+        var cursor = startIndex
+        for (i, len) in lengths.enumerated() {
+            out.append(Seg(scenario: name, phase: phases[i], from: cursor, to: cursor + len))
+            cursor += len
+        }
+        return out
     }
 
     private func bubble(for scenario: String, in all: [Seg]) -> ValueBubble {
         var rows: [ValueBubble.Row] = []
         let mine: [Seg] = all.filter { $0.scenario == scenario }
         for (idx, seg) in mine.enumerated() {
-            rows.append(ValueBubble.Row(label: seg.phase, value: "\(seg.months) Mon.", color: colors[idx]))
+            let text: String = seg.months > 0
+                ? "\(monthLabel(seg.from)) – \(monthLabel(seg.to - 1)) · \(seg.months) Mon."
+                : "–"
+            rows.append(ValueBubble.Row(label: seg.phase, value: text, color: colors[idx]))
         }
         return ValueBubble(title: scenario, rows: rows)
     }
 
     var body: some View {
         let all: [Seg] = segs("Standard (Frist)", std) + segs("Sprinter (Sofort)", spr)
+        let drawn: [Seg] = all.filter { $0.months > 0 }
+        let endIndex: Int = max(startIndex + 1, all.map { $0.to }.max() ?? startIndex + 1)
         VStack(spacing: 8) {
             Chart {
-                ForEach(all) { s in
-                    BarMark(x: .value("Monate", s.months), y: .value("Szenario", s.scenario))
+                ForEach(drawn) { s in
+                    BarMark(xStart: .value("Von", s.from), xEnd: .value("Bis", s.to), y: .value("Szenario", s.scenario))
                         .foregroundStyle(by: .value("Phase", s.phase))
                         .opacity(selectedScenario == nil || selectedScenario == s.scenario ? 1 : 0.4)
                 }
@@ -395,6 +409,15 @@ struct PhaseChart: View {
                 }
             }
             .chartYSelection(value: $selectedScenario)
+            .chartXScale(domain: startIndex...endIndex)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 5)) { v in
+                    AxisGridLine()
+                    AxisValueLabel {
+                        if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
+                    }
+                }
+            }
             .chartForegroundStyleScale(domain: phases, range: colors)
             .chartLegend(position: .bottom, alignment: .leading)
             .frame(height: 190)
@@ -403,91 +426,63 @@ struct PhaseChart: View {
     }
 }
 
-/// Account balance over time: green above zero, red below, with markers for the key events and the
-/// month the money runs out. One scenario is shown prominently, the other as a faint dashed line.
+/// Account balance over time for both scenarios in their own colors (same colors as the KPI tiles):
+/// Sprinter green, Standard blue. The area below zero is shaded light red. A shared marker shows the
+/// Finanzamt refund in Oct. 2028, and a dot marks the month the money runs out in each scenario.
 struct RunwayBalanceChart: View {
     let std: RunwayResult
     let spr: RunwayResult
-    @State private var showSprinter = true
     @State private var selectedX: Int?
 
-    private struct Event: Identifiable {
-        var id: String { name }
-        let month: Int
-        let name: String
-        let color: Color
-    }
+    private let sprName = "Sprinter"
+    private let stdName = "Standard"
+    private let faMonth = 21   // Oct 2028
 
-    private var main: RunwayResult { showSprinter ? spr : std }
-    private var other: RunwayResult { showSprinter ? std : spr }
-    private var mainName: String { showSprinter ? "Sprinter" : "Standard" }
-    private var otherName: String { showSprinter ? "Standard" : "Sprinter" }
+    private var maxIndex: Int { max(0, max(std.curve.count, spr.curve.count) - 1) }
 
-    private var events: [Event] {
-        let r = main
-        let last = max(0, r.curve.count - 1)
-        var list: [Event] = [
-            Event(month: min(r.salMonthsTotal, 11), name: "Auszahlung", color: Theme.accent),
-            Event(month: 21, name: "FA Okt. 2028", color: Theme.purple),
-            Event(month: r.salMonthsTotal + r.dynamicRuhens + r.algMonths, name: "ALG 1 endet", color: Theme.cyan)
-        ]
-        if r.exhaustedMonth < 240 {
-            list.append(Event(month: last, name: "Geld aufgebraucht", color: Theme.danger))
-        }
-        return list.filter { $0.month <= last }
+    private var minValue: Double {
+        min(0, min(std.curve.min() ?? 0, spr.curve.min() ?? 0))
     }
 
     private var selectedIndex: Int? {
         guard let x = selectedX else { return nil }
-        return min(max(0, x), max(0, main.curve.count - 1))
+        return min(max(0, x), maxIndex)
     }
 
     private func bubble(at idx: Int) -> ValueBubble {
-        let mainText: String = Fmt.signedEur(main.curve[idx])
-        let otherText: String = idx < other.curve.count ? Fmt.signedEur(other.curve[idx]) : "–"
+        let sprText: String = idx < spr.curve.count ? Fmt.signedEur(spr.curve[idx]) : "–"
+        let stdText: String = idx < std.curve.count ? Fmt.signedEur(std.curve[idx]) : "–"
         let rows: [ValueBubble.Row] = [
-            ValueBubble.Row(label: mainName, value: mainText, color: Color.primary),
-            ValueBubble.Row(label: otherName, value: otherText, color: Color.secondary)
+            ValueBubble.Row(label: sprName, value: sprText, color: Theme.success),
+            ValueBubble.Row(label: stdName, value: stdText, color: Theme.accent)
         ]
         return ValueBubble(title: monthLabel(idx), rows: rows)
     }
 
     @ChartContentBuilder
-    private func areaMarks(_ curve: [Double]) -> some ChartContent {
-        ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
-            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Plus", max(v, 0)),
-                     series: .value("Bereich", "plus"))
-                .foregroundStyle(Theme.success.opacity(0.28))
-            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Minus", min(v, 0)),
-                     series: .value("Bereich", "minus"))
-                .foregroundStyle(Theme.danger.opacity(0.35))
+    private var dangerZone: some ChartContent {
+        if minValue < 0 {
+            RectangleMark(xStart: .value("Start", 0), xEnd: .value("Ende", maxIndex),
+                          yStart: .value("Minimum", minValue), yEnd: .value("Null", 0))
+                .foregroundStyle(Theme.danger.opacity(0.08))
         }
     }
 
     @ChartContentBuilder
-    private func otherLine(_ curve: [Double]) -> some ChartContent {
+    private func line(_ curve: [Double], name: String) -> some ChartContent {
         ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
-            LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Linie", otherName))
-                .foregroundStyle(Color.secondary.opacity(0.55))
-                .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
+            LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Reihe", name))
+                .foregroundStyle(by: .value("Szenario", name))
+                .lineStyle(StrokeStyle(lineWidth: 2.2))
         }
     }
 
     @ChartContentBuilder
-    private func mainLine(_ curve: [Double]) -> some ChartContent {
-        ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
-            LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Linie", mainName))
-                .foregroundStyle(Color.primary)
-                .lineStyle(StrokeStyle(lineWidth: 2))
-        }
-    }
-
-    @ChartContentBuilder
-    private func eventMarks(_ evs: [Event]) -> some ChartContent {
-        ForEach(evs) { e in
-            RuleMark(x: .value("Ereignis", e.month))
-                .foregroundStyle(e.color.opacity(0.75))
-                .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+    private func endDot(_ r: RunwayResult, color: Color) -> some ChartContent {
+        if r.exhaustedMonth < 240, let last = r.curve.last {
+            PointMark(x: .value("Monat", r.curve.count - 1), y: .value("Saldo", last))
+                .symbolSize(70)
+                .foregroundStyle(color)
         }
     }
 
@@ -503,16 +498,22 @@ struct RunwayBalanceChart: View {
     }
 
     private var chart: some View {
-        let evs: [Event] = events
-        return Chart {
-            areaMarks(main.curve)
-            otherLine(other.curve)
-            mainLine(main.curve)
-            RuleMark(y: .value("Null", 0)).foregroundStyle(Color.primary.opacity(0.6))
-            eventMarks(evs)
+        Chart {
+            dangerZone
+            RuleMark(y: .value("Null", 0)).foregroundStyle(Color.primary.opacity(0.55))
+            if faMonth <= maxIndex {
+                RuleMark(x: .value("FA", faMonth))
+                    .foregroundStyle(Theme.purple.opacity(0.8))
+                    .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+            }
+            line(std.curve, name: stdName)
+            line(spr.curve, name: sprName)
+            endDot(std, color: Theme.accent)
+            endDot(spr, color: Theme.success)
             selectionMark
         }
         .chartXSelection(value: $selectedX)
+        .chartForegroundStyleScale(domain: [sprName, stdName], range: [Theme.success, Theme.accent])
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 5)) { v in
                 AxisGridLine()
@@ -529,40 +530,50 @@ struct RunwayBalanceChart: View {
                 }
             }
         }
-        .chartLegend(.hidden)
+        .chartLegend(position: .bottom, alignment: .leading)
         .frame(height: 250)
     }
 
+    private func endText(_ r: RunwayResult) -> String {
+        r.exhaustedMonth < 240 ? monthLabel(r.curve.count - 1) : "> 20 Jahre"
+    }
+
+    private var datesTable: some View {
+        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
+            GridRow {
+                Text("").gridColumnAlignment(.leading)
+                Text(sprName).font(.caption.weight(.bold)).foregroundStyle(Theme.success)
+                Text(stdName).font(.caption.weight(.bold)).foregroundStyle(Theme.accent)
+            }
+            GridRow {
+                Text("Auszahlung").font(.caption)
+                Text(monthLabel(min(spr.salMonthsTotal, 11))).font(.caption).monospacedDigit()
+                Text(monthLabel(min(std.salMonthsTotal, 11))).font(.caption).monospacedDigit()
+            }
+            GridRow {
+                Text("ALG 1 endet").font(.caption)
+                Text(monthLabel(spr.salMonthsTotal + spr.dynamicRuhens + spr.algMonths)).font(.caption).monospacedDigit()
+                Text(monthLabel(std.salMonthsTotal + std.dynamicRuhens + std.algMonths)).font(.caption).monospacedDigit()
+            }
+            GridRow {
+                Text("Geld aufgebraucht").font(.caption)
+                Text(endText(spr)).font(.caption.weight(.semibold)).monospacedDigit()
+                Text(endText(std)).font(.caption.weight(.semibold)).monospacedDigit()
+            }
+        }
+    }
+
     var body: some View {
-        let r: RunwayResult = main
-        let evs: [Event] = events
-        return VStack(alignment: .leading, spacing: 10) {
-            Picker("Szenario", selection: $showSprinter) {
-                Text("Sprinter").tag(true)
-                Text("Standard").tag(false)
-            }
-            .pickerStyle(.segmented)
-
+        VStack(alignment: .leading, spacing: 10) {
             chart
-
-            VStack(alignment: .leading, spacing: 3) {
-                ForEach(evs) { e in
-                    HStack(spacing: 6) {
-                        Rectangle().fill(e.color).frame(width: 14, height: 3)
-                        Text(e.name).font(.caption)
-                        Spacer()
-                        Text(monthLabel(e.month)).font(.caption.weight(.semibold)).monospacedDigit()
-                    }
-                }
-                HStack(spacing: 6) {
-                    Rectangle().fill(Color.secondary.opacity(0.6)).frame(width: 14, height: 3)
-                    Text("\(otherName) (zum Vergleich)").font(.caption)
-                    Spacer()
-                }
-                if r.exhaustedMonth >= 240 {
-                    Text("Das Geld reicht in dieser Simulation über 20 Jahre.").font(.caption).foregroundStyle(Theme.success)
-                }
+            HStack(spacing: 6) {
+                Rectangle().fill(Theme.purple).frame(width: 14, height: 3)
+                Text("Finanzamt-Erstattung \(monthLabel(faMonth))").font(.caption)
+                Spacer()
+                Rectangle().fill(Theme.danger.opacity(0.25)).frame(width: 14, height: 8)
+                Text("Defizit").font(.caption)
             }
+            datesTable
             ChartTouchHint()
         }
     }

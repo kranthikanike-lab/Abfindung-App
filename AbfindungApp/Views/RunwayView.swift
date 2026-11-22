@@ -64,9 +64,12 @@ struct RunwayProContent: View {
                         Banner(text: "⚠️ **Okt.-2028 Brücke nötig:** Vor Eintreffen der Finanzamt-Erstattung (\(Fmt.eur(spr.faRefundOct2028))) entsteht ab **\(monthLabel(spr.firstDeficitM ?? 0))** ein kurzfristiger Liquiditätsbedarf von **\(Fmt.eur(spr.bridgeDeficitMax))**.", color: Theme.warning)
                     }
 
-                    Card(title: "Lebensphasen-Zeitstrahl (Monate ab Jan. 2027)") { PhaseChart(std: std, spr: spr) }
+                    Card(title: "Lebensphasen-Zeitstrahl",
+                         subtitle: "Start: \(monthLabel(r.ctx?.preMonths ?? 0)) – der Monat aus „Start Frist / Sprinter-Austritt“.") {
+                        PhaseChart(std: std, spr: spr, startIndex: r.ctx?.preMonths ?? 0)
+                    }
                     Card(title: "Konto-Verlauf (€)",
-                         subtitle: "Grün: Guthaben, rot: Defizit. Die Markierungen zeigen Auszahlung, Finanzamt-Erstattung, Ende von ALG 1 und den Monat, in dem das Geld aufgebraucht ist.") {
+                         subtitle: "Sprinter grün, Standard blau. Rot hinterlegt: Defizit. Der Punkt zeigt, wo das Geld aufgebraucht ist.") {
                         RunwayBalanceChart(std: std, spr: spr)
                     }
                 }
