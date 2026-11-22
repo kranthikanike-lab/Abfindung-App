@@ -45,7 +45,8 @@ struct Inputs: Codable, Equatable {
     var ruerup = 0.0
     var iabInvest = 0.0
 
-    // C. Runway
+    // C. Runway (Pro)
+    var runwayEnabled = false
     var runwayExpenses = 3500.0
     var runwayAlg1Months = 12
     var runwayUpfrontSpend = 0.0
@@ -56,7 +57,8 @@ struct Inputs: Codable, Equatable {
     var runwayIncludeSalarySavings = true
     var runwayCapRuerupSweetSpot = true
 
-    // D. Crossover
+    // D. Crossover (Pro)
+    var crossoverEnabled = false
     var crossoverNewGross = 5500.0
     var crossoverPerYear = false
     var crossoverDelayMonths = 0

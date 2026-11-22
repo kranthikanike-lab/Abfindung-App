@@ -23,5 +23,6 @@ struct ContentView: View {
         }
         .preferredColorScheme(ThemeChoice(rawValue: themeRaw)?.scheme)
         .sheet(isPresented: $sheets.showLegal) { LegalSheet() }
+        .sheet(isPresented: $sheets.showUnlock) { UnlockSheet() }
     }
 }

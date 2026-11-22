@@ -18,7 +18,11 @@ struct InputsView: View {
             VStack(spacing: 14) {
                 coreCard(m: $m, r: r)
                 sprinterCard(m: $m, r: r)
-                optimizationCard(m: $m, r: r)
+                if model.isPro {
+                    optimizationCard(m: $m, r: r)
+                } else {
+                    ProLockedCard(feature: .taxOptimization)
+                }
             }
             .padding()
             .padding(.bottom, 70)

@@ -62,7 +62,8 @@ struct ErstattungChart: View {
             ("Rürup", r.ruerupSaving.savings, Theme.success),
             ("PV-IAB", r.iabSaving.savings, Theme.purple)
         ]
-        Chart(Array(bars.enumerated()), id: \.offset) { _, b in
+        let shown = bars.filter { $0.1 != 0 || $0.0 == "Fünftel-Basis" }
+        Chart(Array(shown.enumerated()), id: \.offset) { _, b in
             BarMark(x: .value("Quelle", b.0), y: .value("€", b.1))
                 .foregroundStyle(b.2).cornerRadius(6)
         }

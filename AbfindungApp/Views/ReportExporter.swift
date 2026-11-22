@@ -46,10 +46,12 @@ private struct ReportView: View {
                 .font(.caption).foregroundStyle(.gray)
             Divider()
             row("Basis-Abfindung (Brutto)", Fmt.eur(r.abfNoTurbo))
-            row("+ Sprinter-Prämie (Brutto)", "+ " + Fmt.eur(r.praemieBrutto))
-            row("= Gesamt-Abfindung (Brutto)", Fmt.eur(r.effectiveAbfindung))
-            row("− bAV-Direktumwandlung", "– " + Fmt.eur(r.bav))
-            row("− AG-Direktzahlung DRV (V0210)", "– " + Fmt.eur(r.drvRaw))
+            if r.praemieBrutto > 0 {
+                row("+ Sprinter-Prämie (Brutto)", "+ " + Fmt.eur(r.praemieBrutto))
+                row("= Gesamt-Abfindung (Brutto)", Fmt.eur(r.effectiveAbfindung))
+            }
+            if r.bav > 0 { row("− bAV-Direktumwandlung", "– " + Fmt.eur(r.bav)) }
+            if r.drvRaw > 0 { row("− AG-Direktzahlung DRV (V0210)", "– " + Fmt.eur(r.drvRaw)) }
             row("= Steuerpflichtige Bar-Abfindung", Fmt.eur(r.barBruttoTaxable))
             row("− Lohnsteuer\(i.kirchensteuer > 0 ? " + Soli + KiSt" : " + Soli")-Einbehalt (\(Fmt.pct(r.rateUpfront)))", "– " + Fmt.eur(r.einbehalten))
             row("= Sofort-Netto (2027)", Fmt.eur(r.netVoll), bold: true)
@@ -58,8 +60,8 @@ private struct ReportView: View {
             row(r.erstattung >= 0 ? "Erstattung Finanzamt (Okt. 2028)" : "Nachzahlung Finanzamt (Okt. 2028)", Fmt.signedEur(r.erstattung))
             row("= Optimal-Netto Abfindung", Fmt.eur(r.netFf), bold: true)
             Divider()
-            row("Rürup-Einzahlung", "– " + Fmt.eur(r.ruerup))
-            row("PV-IAB Investition", "– " + Fmt.eur(r.iabInvest))
+            if r.ruerup > 0 { row("Rürup-Einzahlung", "– " + Fmt.eur(r.ruerup)) }
+            if r.iabInvest > 0 { row("PV-IAB Investition", "– " + Fmt.eur(r.iabInvest)) }
             row("Konto-Stand 31.12.2027", Fmt.eur(r.liq27))
             row("Konto-Stand Ende 2028", Fmt.eur(r.liq28), bold: true)
             if i.isTurbo {

@@ -16,6 +16,20 @@ Sprinter-Bilanz, Cash-Burn-Reichweite, Gehalts-Switch/Break-Even) is ported 1:1 
 Menü oben: Schnell-Szenarien, Hell/Dunkel/System, Rechengrößen & Recht 2027, Report als PDF teilen.
 Eingaben werden automatisch gespeichert.
 
+## Basic and Pro
+| | Basic (free) | Pro (one-time purchase, planned) |
+|---|---|---|
+| Inputs A (Einkommen, Kinder, Splitting, Kirchensteuer) | ✅ | ✅ |
+| Sprinter option incl. Bilanz | ✅ | ✅ |
+| Results: KPIs, charts 1–2, Tables 1–3 | ✅ | ✅ |
+| B. Steuer-Optimierung (bAV, DRV V0210, Rürup, PV-IAB) | locked | ✅ |
+| C. Reichweite (Cash-Burn) | locked | ✅ |
+| D. Gehalts-Switch / Break-Even | locked | ✅ |
+| PDF report, quick scenarios | locked | ✅ |
+
+Pro features never influence a Basic result, and unused features never appear in charts or tables.
+In this version Pro is switched on/off from the ⋯ menu (`Entitlements.testMode`); the App Store purchase replaces that before release.
+
 ## Build (macOS + Xcode 15+)
 ```bash
 brew install xcodegen

@@ -12,12 +12,20 @@ final class CalculatorTests: XCTestCase {
         XCTAssertEqual(actual, Double(expected), accuracy: 1.5, name, file: file, line: line)
     }
 
+    /// Default inputs with the Pro sections C and D switched on (the scenarios below check their results).
+    private func scenario() -> Inputs {
+        var i = Inputs()
+        i.runwayEnabled = true
+        i.crossoverEnabled = true
+        return i
+    }
+
     private func label(_ r: CrossoverResult?) -> String {
         r?.breakevenMonthFromJan27.map(monthLabel) ?? "nie"
     }
 
     func testScenario_Default() {
-        var i = Inputs()
+        var i = scenario()
         let r = Calculator.compute(i)
         eur(r.netVoll, 82756, "Sofort-Netto")
         eur(r.erstattung, 11294, "Erstattung/Nachzahlung")
@@ -34,7 +42,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_SprinterOpt() {
-        var i = Inputs()
+        var i = scenario()
         i.isTurbo = true
         i.optEnabled = true
         i.bav = 42500
@@ -55,7 +63,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_SplittingKist9() {
-        var i = Inputs()
+        var i = scenario()
         i.splitting = true
         i.kinder = 1
         i.kirchensteuer = 0.09
@@ -75,7 +83,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_SprinterKist8Minijob() {
-        var i = Inputs()
+        var i = scenario()
         i.isTurbo = true
         i.kinder = 0
         i.alg1Satz = 0.6
@@ -100,7 +108,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_NegativeBase() {
-        var i = Inputs()
+        var i = scenario()
         i.isTurbo = true
         i.optEnabled = true
         i.ruerup = 20000
@@ -121,7 +129,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_LateStart() {
-        var i = Inputs()
+        var i = scenario()
         i.startMonth = 10
         let r = Calculator.compute(i)
         eur(r.netVoll, 82756, "Sofort-Netto")
@@ -139,7 +147,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_Nachzahlung() {
-        var i = Inputs()
+        var i = scenario()
         i.agFiktivGehalt = 0
         i.kinder = 0
         let r = Calculator.compute(i)
@@ -158,7 +166,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_ManyKidsDrv() {
-        var i = Inputs()
+        var i = scenario()
         i.isTurbo = true
         i.kinder = 2.5
         i.zusatzbeitrag = 3.5
@@ -181,7 +189,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testScenario_HighEarner() {
-        var i = Inputs()
+        var i = scenario()
         i.altesMonatsgehalt = 15000
         i.bruttoAbfindung = 400000
         i.startMonth = 6
@@ -289,7 +297,7 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testPayoutStaysIn2027() {
-        var i = Inputs()
+        var i = scenario()
         i.startMonth = 12
         i.fristMonate = 6
         let r = Calculator.compute(i)
@@ -305,11 +313,87 @@ final class CalculatorTests: XCTestCase {
     }
 
     func testPresetKeepsIntendedBavValue() {
-        let model = AppModel(inputs: Inputs())
+        let model = AppModel(inputs: Inputs(), isPro: true)
         model.apply(.sprinterSweet)
         XCTAssertEqual(model.inputs.bav, 42_480)
         XCTAssertTrue(model.inputs.isTurbo)
         XCTAssertTrue(model.inputs.optEnabled)
         XCTAssertGreaterThan(model.inputs.ruerup, 0)
+    }
+
+    // MARK: Basic / Pro
+
+    func testBasicIgnoresStoredProInputs() {
+        var proInputs = Inputs()
+        proInputs.optEnabled = true
+        proInputs.bav = 40_000
+        proInputs.drv = 20_000
+        proInputs.ruerup = 10_000
+        proInputs.iabInvest = 100_000
+        proInputs.runwayEnabled = true
+        proInputs.crossoverEnabled = true
+        let basic = Calculator.compute(proInputs, pro: false)
+        let plain = Calculator.compute(Inputs(), pro: true)
+        eur(basic.netVoll, Int(plain.netVoll.rounded()), "Sofort-Netto")
+        eur(basic.erstattung, Int(plain.erstattung.rounded()), "Erstattung")
+        eur(basic.netFf, Int(plain.netFf.rounded()), "Optimal-Netto")
+        XCTAssertEqual(basic.bav, 0)
+        XCTAssertEqual(basic.drvRaw, 0)
+        XCTAssertEqual(basic.ruerup, 0)
+        XCTAssertEqual(basic.iabInvest, 0)
+        XCTAssertNil(basic.runwayStd)
+        XCTAssertNil(basic.crossStd)
+    }
+
+    func testProSectionsOnlyCalculateWhenSwitchedOn() {
+        let off = Calculator.compute(Inputs(), pro: true)
+        XCTAssertNil(off.runwayStd)
+        XCTAssertNil(off.runwaySpr)
+        XCTAssertNil(off.crossStd)
+        XCTAssertNil(off.crossSpr)
+        var on = Inputs()
+        on.runwayEnabled = true
+        let onlyRunway = Calculator.compute(on, pro: true)
+        XCTAssertNotNil(onlyRunway.runwayStd)
+        XCTAssertNil(onlyRunway.crossStd)
+        on.crossoverEnabled = true
+        XCTAssertNotNil(Calculator.compute(on, pro: true).crossStd)
+    }
+
+    func testBasicModelBlocksProActions() {
+        let model = AppModel(inputs: Inputs(), isPro: false)
+        AppSheets.shared.showUnlock = false
+        model.setOptEnabled(true)
+        XCTAssertFalse(model.inputs.optEnabled)
+        XCTAssertTrue(AppSheets.shared.showUnlock)
+        AppSheets.shared.showUnlock = false
+        model.apply(.runwayCheck)
+        XCTAssertFalse(model.inputs.runwayEnabled)
+        XCTAssertFalse(model.inputs.isTurbo)
+        XCTAssertTrue(AppSheets.shared.showUnlock)
+        AppSheets.shared.showUnlock = false
+        model.applyRuerupSweetSpot()
+        XCTAssertEqual(model.inputs.ruerup, 0)
+    }
+
+    func testReset() {
+        let model = AppModel(inputs: Inputs(), isPro: false)
+        model.inputs.isTurbo = true
+        model.apply(.reset)
+        XCTAssertEqual(model.inputs, Inputs())
+    }
+
+    func testProModelEnablesSections() {
+        let model = AppModel(inputs: Inputs(), isPro: true)
+        model.apply(.runwayCheck)
+        XCTAssertTrue(model.inputs.runwayEnabled)
+        XCTAssertNotNil(model.results.runwayStd)
+        XCTAssertEqual(model.selectedTab, .runway)
+        model.apply(.gehaltsSwitch)
+        XCTAssertTrue(model.inputs.crossoverEnabled)
+        XCTAssertNotNil(model.results.crossStd)
+        model.isPro = false
+        XCTAssertNil(model.results.runwayStd)
+        XCTAssertNil(model.results.crossStd)
     }
 }

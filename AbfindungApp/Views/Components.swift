@@ -255,3 +255,63 @@ struct ResultTable<Content: View>: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
     }
 }
+
+// MARK: - Pro tier
+
+struct ProBadge: View {
+    var body: some View {
+        Text("PRO")
+            .font(.caption2.weight(.heavy))
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Theme.accent.opacity(0.15), in: Capsule())
+            .foregroundStyle(Theme.accent)
+    }
+}
+
+/// Teaser card shown instead of a Pro feature in the Basic version.
+struct ProLockedCard: View {
+    let feature: Feature
+    var body: some View {
+        Card {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill").foregroundStyle(Theme.accent)
+                Text(feature.title).font(.headline)
+                ProBadge()
+                Spacer(minLength: 0)
+            }
+            Text(feature.summary).font(.subheadline).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(feature.bullets, id: \.self) { b in
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "checkmark").font(.caption.weight(.bold)).foregroundStyle(Theme.success)
+                        Text(b).font(.footnote)
+                    }
+                }
+            }
+            Button {
+                AppSheets.shared.showUnlock = true
+            } label: {
+                Label("Pro freischalten", systemImage: "lock.open")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+/// Full-screen replacement for a Pro tab in the Basic version.
+struct ProLockedView: View {
+    let feature: Feature
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                ProLockedCard(feature: feature)
+                Card(title: "Beispielrechnung") {
+                    Text(feature.example).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+}

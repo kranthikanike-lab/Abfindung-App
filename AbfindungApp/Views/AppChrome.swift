@@ -15,9 +15,9 @@ struct AppToolbar: ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Menu {
                 Section("Schnell-Szenarien") {
-                    Button("🚀 Sprinter + Rürup Sweet-Spot") { model.apply(.sprinterSweet) }
-                    Button("🧭 Cash-Burn & Reichweite") { model.apply(.runwayCheck) }
-                    Button("📉 Gehalts-Switch (Break-Even)") { model.apply(.gehaltsSwitch) }
+                    Button("\(model.isPro ? "" : "🔒 ")🚀 Sprinter + Rürup Sweet-Spot") { model.apply(.sprinterSweet) }
+                    Button("\(model.isPro ? "" : "🔒 ")🧭 Cash-Burn & Reichweite") { model.apply(.runwayCheck) }
+                    Button("\(model.isPro ? "" : "🔒 ")📉 Gehalts-Switch (Break-Even)") { model.apply(.gehaltsSwitch) }
                     Button("↺ Reset", role: .destructive) { model.apply(.reset) }
                 }
             } label: { Image(systemName: "bolt.circle") }
@@ -29,9 +29,19 @@ struct AppToolbar: ToolbarContent {
                 }
                 Divider()
                 Button { AppSheets.shared.showLegal = true } label: { Label("Rechengrößen & Recht 2027", systemImage: "info.circle") }
-                ShareLink(item: ReportFile(results: model.results, inputs: model.inputs),
-                          preview: SharePreview("Abfindungs-Report.pdf")) {
-                    Label("Report / PDF", systemImage: "doc.richtext")
+                if model.isPro {
+                    ShareLink(item: ReportFile(results: model.results, inputs: model.inputs),
+                              preview: SharePreview("Abfindungs-Report.pdf")) {
+                        Label("Report / PDF", systemImage: "doc.richtext")
+                    }
+                } else {
+                    Button { AppSheets.shared.showUnlock = true } label: {
+                        Label("Report / PDF (Pro)", systemImage: "lock")
+                    }
+                }
+                Divider()
+                Button { AppSheets.shared.showUnlock = true } label: {
+                    Label(model.isPro ? "Pro aktiv" : "Pro freischalten", systemImage: model.isPro ? "checkmark.seal" : "lock.open")
                 }
             } label: { Image(systemName: "ellipsis.circle") }
         }
@@ -42,6 +52,7 @@ struct AppToolbar: ToolbarContent {
 final class AppSheets {
     static let shared = AppSheets()
     var showLegal = false
+    var showUnlock = false
 }
 
 struct StickyKPIBar: View {
@@ -153,5 +164,55 @@ struct DrvDeficitSheet: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } } }
         }
         .presentationDetents([.large])
+    }
+}
+
+
+/// Explains the Pro tier. The purchase itself is added before release; until then a test switch is shown.
+struct UnlockSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack { Text("Abfindungs-Optimizer Pro").font(.title3.weight(.bold)); ProBadge() }
+                        Text("Einmaliger Kauf für 2027. Der Preis wird vor der Veröffentlichung festgelegt.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }.padding(.vertical, 4)
+                }
+                Section("Enthalten in Pro") {
+                    ForEach(Feature.allCases) { f in
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: f.icon).frame(width: 24).foregroundStyle(Theme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(f.title).font(.subheadline.weight(.semibold))
+                                Text(f.summary).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }.padding(.vertical, 2)
+                    }
+                }
+                Section("Immer kostenlos (Basic)") {
+                    Text("Abfindung, Lohnsteuer-Einbehalt, Fünftelregelung und Erstattung, Kinder, Splitting, Kirchensteuer, Sprinter-Option, Ergebnistabellen.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                if Entitlements.testMode {
+                    Section {
+                        if model.isPro {
+                            Button("Auf Basic zurücksetzen (Testmodus)", role: .destructive) { model.isPro = false; dismiss() }
+                        } else {
+                            Button("Pro freischalten (Testmodus)") { model.isPro = true; dismiss() }
+                        }
+                    } footer: {
+                        Text("Testmodus: In der veröffentlichten Version wird dies durch den Einmalkauf über den App Store ersetzt.")
+                    }
+                }
+            }
+            .navigationTitle("Pro 2027")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } } }
+        }
     }
 }

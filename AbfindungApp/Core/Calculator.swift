@@ -132,7 +132,9 @@ enum Calculator {
         return min(total, Int((Double(total) / 4).rounded(.up)))
     }
 
-    static func compute(_ i: Inputs) -> Results {
+    /// - Parameter pro: Pro features (Steuer-Optimierung, Reichweite, Gehalts-Switch) are ignored when `false`,
+    ///   so stored Pro inputs can never influence a Basic result.
+    static func compute(_ i: Inputs, pro: Bool = true) -> Results {
         var r = Results()
 
         let alt = max(0, i.altesMonatsgehalt)
@@ -182,7 +184,7 @@ enum Calculator {
                             - (i.splitting ? min(pGehalt, Const.bbgRV) * 0.186 : 0))
         r.maxRuerup = maxRuerup
 
-        let opt = i.optEnabled
+        let opt = pro && i.optEnabled
         let bav = opt ? min(effAbf, i.bav) : 0
         let drvRaw = opt ? min(max(0, effAbf - bav), i.drv) : 0
         let ruerup = opt ? min(maxRuerup, i.ruerup) : 0
@@ -365,17 +367,22 @@ enum Calculator {
                          gkvHoechstsatzMonat: gkvHoechst, gkvMinMonat: gkvMin, alg1Monat: alg1Monat,
                          preExitGkvPflicht: i.preExitGkvPflicht)
         r.ctx = ctx
-        r.runwayStd = Runway.simulate(ctx, i, sprinter: false)
-        r.runwaySpr = Runway.simulate(ctx, i, sprinter: true)
 
-        let newMonthly = i.crossoverPerYear ? max(0, i.crossoverNewGross) / 12 : max(0, i.crossoverNewGross)
-        let delay = max(0, i.crossoverDelayMonths)
-        let growth = i.crossoverGrowth / 100
-        let cStd = Crossover.simulate(ctx, i, sprinter: false, newMonthlyGross: newMonthly, delay: delay, growth: growth)
-        let cSpr = Crossover.simulate(ctx, i, sprinter: true, newMonthlyGross: newMonthly, delay: delay, growth: growth)
-        r.crossStd = cStd
-        r.crossSpr = cSpr
-        r.crossMonthlyLoss = max(0, cStd.baseOldNet - cStd.baseNewNet)
+        if pro && i.runwayEnabled {
+            r.runwayStd = Runway.simulate(ctx, i, sprinter: false)
+            r.runwaySpr = Runway.simulate(ctx, i, sprinter: true)
+        }
+
+        if pro && i.crossoverEnabled {
+            let newMonthly = i.crossoverPerYear ? max(0, i.crossoverNewGross) / 12 : max(0, i.crossoverNewGross)
+            let delay = max(0, i.crossoverDelayMonths)
+            let growth = i.crossoverGrowth / 100
+            let cStd = Crossover.simulate(ctx, i, sprinter: false, newMonthlyGross: newMonthly, delay: delay, growth: growth)
+            let cSpr = Crossover.simulate(ctx, i, sprinter: true, newMonthlyGross: newMonthly, delay: delay, growth: growth)
+            r.crossStd = cStd
+            r.crossSpr = cSpr
+            r.crossMonthlyLoss = max(0, cStd.baseOldNet - cStd.baseNewNet)
+        }
         return r
     }
 }

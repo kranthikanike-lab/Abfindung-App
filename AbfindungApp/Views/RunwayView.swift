@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct RunwayView: View {
+struct RunwayProContent: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -10,6 +10,11 @@ struct RunwayView: View {
             VStack(spacing: 14) {
                 Card(title: "🧭 C. Cash-Burn & Reichweite (Überleben ohne Job)",
                      subtitle: "Austrittsmonat und Gehalt kommen aus „Eingaben“ (Sprinter: \(r.salMonthsSpr)M | Standard: \(r.salMonthsStd)M Gehalt).") {
+                    Toggle("Reichweite berechnen", isOn: $m.inputs.runwayEnabled).font(.subheadline.weight(.semibold))
+                    if !model.inputs.runwayEnabled {
+                        Hint("Einschalten, um Reichweite, Lebensphasen und Konto-Verlauf zu berechnen.")
+                    }
+                    if model.inputs.runwayEnabled {
                     NumberField(title: "Monatl. Netto-Ausgaben (ohne GKV, €)", value: $m.inputs.runwayExpenses,
                                 hint: "Private Lebenshaltungskosten")
                     IntField(title: "Gesamter ALG-1 Anspruch (Monate)", value: $m.inputs.runwayAlg1Months,
@@ -33,6 +38,7 @@ struct RunwayView: View {
                                 : "Steuer- & GKV-frei (während ALG 1 max. 165 € frei)")
                     Toggle("Netto-Gehalt minus Ausgaben ansparen (Gehalts-Überschuss 2027)", isOn: $m.inputs.runwayIncludeSalarySavings).font(.subheadline)
                     Toggle("Rürup in Reichweite auf >100 % Cash-Plus begrenzen", isOn: $m.inputs.runwayCapRuerupSweetSpot).font(.subheadline)
+                    }
                 }
 
                 if let std = r.runwayStd, let spr = r.runwaySpr {
@@ -71,13 +77,22 @@ struct RunwayView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemGroupedBackground))
+    }
+}
+
+struct RunwayView: View {
+    @Environment(AppModel.self) private var model
+    var body: some View {
+        Group {
+            if model.isPro { RunwayProContent() } else { ProLockedView(feature: .runway) }
+        }
         .navigationTitle("Reichweite")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { AppToolbar() }
     }
 }
 
-struct CrossoverView: View {
+struct CrossoverProContent: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -87,6 +102,11 @@ struct CrossoverView: View {
             VStack(spacing: 14) {
                 Card(title: "📉 D. Gehalts-Switch / Break-Even Rechner",
                      subtitle: "Neuer Job mit weniger Gehalt. Austritt, Ausgaben, ALG 1, GKV & Realzins kommen aus „Reichweite“.") {
+                    Toggle("Gehalts-Switch berechnen", isOn: $m.inputs.crossoverEnabled).font(.subheadline.weight(.semibold))
+                    if !model.inputs.crossoverEnabled {
+                        Hint("Einschalten, um Break-Even und Vermögens-Vorsprung zu berechnen.")
+                    }
+                    if model.inputs.crossoverEnabled {
                     VStack(alignment: .leading, spacing: 6) {
                         NumberField(title: "Neues Bruttogehalt (€)", value: $m.inputs.crossoverNewGross, info: Info.crossoverSalary,
                                     hint: "Monatl. Netto-Einbuße: \(Fmt.eur(r.crossMonthlyLoss)) / Mo")
@@ -101,6 +121,7 @@ struct CrossoverView: View {
                                    : "Job-Start \(monthLabel((r.crossStd?.jobStartM ?? 0))) (Standard)")
                     NumberField(title: "Gehaltswachstum p.a. (Alt & Neu %)", value: $m.inputs.crossoverGrowth,
                                 info: Info.crossoverGrowth, hint: "Symmetrisches Wachstum p.a.")
+                    }
                 }
 
                 if let std = r.crossStd, let spr = r.crossSpr {
@@ -141,6 +162,15 @@ struct CrossoverView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemGroupedBackground))
+    }
+}
+
+struct CrossoverView: View {
+    @Environment(AppModel.self) private var model
+    var body: some View {
+        Group {
+            if model.isPro { CrossoverProContent() } else { ProLockedView(feature: .jobSwitch) }
+        }
         .navigationTitle("Gehalts-Switch")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { AppToolbar() }

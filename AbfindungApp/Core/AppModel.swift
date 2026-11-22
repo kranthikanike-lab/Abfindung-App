@@ -6,6 +6,7 @@ enum AppTab: Hashable { case inputs, results, runway, crossover }
 @Observable
 final class AppModel {
     private static let storeKey = "abfindungs_optimizer_inputs_v1"
+    private static let proKey = "abfindungs_optimizer_pro_v1"
 
     var inputs: Inputs {
         didSet {
@@ -14,18 +15,30 @@ final class AppModel {
             persist()
         }
     }
+
+    /// Pro tier unlocked (test switch for now; in-app purchase later).
+    var isPro: Bool {
+        didSet {
+            guard isPro != oldValue else { return }
+            UserDefaults.standard.set(isPro, forKey: Self.proKey)
+            recompute()
+        }
+    }
+
     private(set) var results: Results
     var selectedTab: AppTab = .inputs
 
-    init(inputs: Inputs? = nil) {
+    init(inputs: Inputs? = nil, isPro: Bool? = nil) {
         let initial = inputs ?? Self.load() ?? Inputs()
+        let pro = isPro ?? UserDefaults.standard.bool(forKey: Self.proKey)
         self.inputs = initial
-        self.results = Calculator.compute(initial)
+        self.isPro = pro
+        self.results = Calculator.compute(initial, pro: pro)
         clampRuerup()
     }
 
     private func recompute() {
-        results = Calculator.compute(inputs)
+        results = Calculator.compute(inputs, pro: isPro)
         clampRuerup()
     }
 
@@ -33,7 +46,7 @@ final class AppModel {
     private func clampRuerup() {
         let cap = jsRound(results.maxRuerup)
         if inputs.ruerup > cap {
-            inputs.ruerup = cap   // re-triggers didSet once, converges immediately
+            inputs.ruerup = cap
         }
     }
 
@@ -48,9 +61,20 @@ final class AppModel {
         return try? JSONDecoder().decode(Inputs.self, from: data)
     }
 
+    // MARK: Pro gate
+
+    /// Returns true if the feature may be used; otherwise opens the unlock sheet.
+    @discardableResult
+    func requirePro() -> Bool {
+        if isPro { return true }
+        AppSheets.shared.showUnlock = true
+        return false
+    }
+
     // MARK: Actions
 
     func setOptEnabled(_ on: Bool) {
+        guard !on || requirePro() else { return }
         inputs.optEnabled = on
         if !on { inputs.bav = 0; inputs.drv = 0; inputs.ruerup = 0; inputs.iabInvest = 0 }
     }
@@ -66,16 +90,19 @@ final class AppModel {
     }
 
     func applyRuerupSweetSpot() {
+        guard requirePro() else { return }
         inputs.optEnabled = true
         inputs.ruerup = Self.snap(results.ruerupSweetSpot, step: 250, max: jsRound(results.maxRuerup))
     }
 
     func applyIabSweetSpot() {
+        guard requirePro() else { return }
         inputs.optEnabled = true
         inputs.iabInvest = Self.snap(results.iabSweetInvest, step: 2000, max: 400_000)
     }
 
     func applyDrvDeficit(cost: Double) {
+        guard requirePro() else { return }
         inputs.optEnabled = true
         inputs.drvMax = max(60_000, cost)
         inputs.drv = cost
@@ -87,6 +114,8 @@ final class AppModel {
             selectedTab = .inputs
             return
         }
+        // All quick scenarios use Pro features.
+        guard requirePro() else { return }
         inputs.iabInvest = 0
         inputs.neuesGehalt = 0
         switch preset {
@@ -100,9 +129,11 @@ final class AppModel {
         case .runwayCheck:
             inputs.isTurbo = true
             setOptEnabled(false)
+            inputs.runwayEnabled = true
             selectedTab = .runway
         case .gehaltsSwitch:
             inputs.isTurbo = true
+            inputs.crossoverEnabled = true
             selectedTab = .crossover
         case .reset: break
         }

@@ -22,15 +22,23 @@ struct ResultsView: View {
 
                 Card(title: "1. AG-Abrechnung (Sofort 2027)") { AgChart(r: r) }
                 Card(title: "2. Finanzamt-Endabrechnung (2028)") { FaChart(r: r) }
-                Card(title: "3. Zusammensetzung FA-Erstattung (Okt. 2028)") { ErstattungChart(r: r) }
+                if r.bav > 0 || r.drvRaw > 0 || r.ruerup > 0 || r.iabInvest > 0 {
+                    Card(title: "3. Zusammensetzung FA-Erstattung (Okt. 2028)") { ErstattungChart(r: r) }
+                }
 
                 ResultTable(title: "📋 Tabelle 1: Arbeitgeber-Auszahlung & Lohnsteuer-Einbehalt (2027)",
                             summary: "Sofort-Netto: \(Fmt.eur(r.netVoll))") {
                     TableRow(label: "Basis-Abfindung (Brutto)", value: Fmt.eur(r.abfNoTurbo), note: "Vertragliche Grundabfindung")
-                    TableRow(label: "+ Sprinter-Prämie (Brutto)", value: "+ " + Fmt.eur(r.praemieBrutto), note: "Vorzeitiger Austritt")
-                    TableRow(label: "= Gesamt-Abfindung (Brutto)", value: Fmt.eur(r.effectiveAbfindung), note: "Vor Vorsorge-Abzügen")
-                    TableRow(label: "− bAV-Direktumwandlung (§ 3 Nr. 63)", value: "– " + Fmt.eur(r.bav), note: "100 % steuerfrei (sofortige Lohnsteuer-Ersparnis)")
-                    TableRow(label: "− AG-Direktzahlung DRV (V0210)", value: "– " + Fmt.eur(r.drvRaw), note: "50 % steuerfrei (§ 3 Nr. 28 EStG)")
+                    if r.praemieBrutto > 0 {
+                        TableRow(label: "+ Sprinter-Prämie (Brutto)", value: "+ " + Fmt.eur(r.praemieBrutto), note: "Vorzeitiger Austritt")
+                        TableRow(label: "= Gesamt-Abfindung (Brutto)", value: Fmt.eur(r.effectiveAbfindung), note: "Vor Vorsorge-Abzügen")
+                    }
+                    if r.bav > 0 {
+                        TableRow(label: "− bAV-Direktumwandlung (§ 3 Nr. 63)", value: "– " + Fmt.eur(r.bav), note: "100 % steuerfrei (sofortige Lohnsteuer-Ersparnis)")
+                    }
+                    if r.drvRaw > 0 {
+                        TableRow(label: "− AG-Direktzahlung DRV (V0210)", value: "– " + Fmt.eur(r.drvRaw), note: "50 % steuerfrei (§ 3 Nr. 28 EStG)")
+                    }
                     TableRow(label: "= Steuerpflichtige Bar-Abfindung", value: Fmt.eur(r.barBruttoTaxable), note: "Bemessungsgrundlage Lohnsteuer")
                     TableRow(label: "− Einbehaltene Lohnsteuer + Soli\(model.inputs.kirchensteuer > 0 ? " + KiSt" : "") (\(Fmt.pct(r.rateUpfront)))", value: "– " + Fmt.eur(r.einbehalten),
                              note: "Ohne Fünftelregelung (Wachstumschancengesetz)", color: Theme.danger)
@@ -61,9 +69,15 @@ struct ResultsView: View {
                             summary: "Konto Ende 2028: \(Fmt.eur(r.liq28))") {
                     TableRow(label: "+ Sofort-Netto Abfindung", value: "+ " + Fmt.eur(r.netVoll), note: "Auszahlung 2027")
                     TableRow(label: "+ Netto-Gehalt 2027 (nach Steuern & SV)", value: "+ " + Fmt.eur(r.netGehaltBase), note: "Reguläres Gehalt 2027")
-                    TableRow(label: "− Eigene Rürup-Einzahlung", value: "– " + Fmt.eur(r.ruerup), note: "Cash-Abfluss 2027 (im Altersvorsorge-Topf gebunden)")
-                    TableRow(label: "− PV-IAB Investitions-Abfluss (100% Kaufpreis)", value: "– " + Fmt.eur(r.iabInvest), note: "Hinweis: IAB selbst kostet 2027 0 € Cash (Kauf erst bis 2030)")
-                    TableRow(label: "− Freiwillige GKV/PV in Sprinter-Lücke", value: "– " + Fmt.eur(r.gkvPenalty2027), note: "Selbstzahler-Beiträge (§ 10 EStG absetzbar)")
+                    if r.ruerup > 0 {
+                        TableRow(label: "− Eigene Rürup-Einzahlung", value: "– " + Fmt.eur(r.ruerup), note: "Cash-Abfluss 2027 (im Altersvorsorge-Topf gebunden)")
+                    }
+                    if r.iabInvest > 0 {
+                        TableRow(label: "− PV-IAB Investitions-Abfluss (100% Kaufpreis)", value: "– " + Fmt.eur(r.iabInvest), note: "Hinweis: IAB selbst kostet 2027 0 € Cash (Kauf erst bis 2030)")
+                    }
+                    if r.gkvPenalty2027 > 0 {
+                        TableRow(label: "− Freiwillige GKV/PV in Sprinter-Lücke", value: "– " + Fmt.eur(r.gkvPenalty2027), note: "Selbstzahler-Beiträge (§ 10 EStG absetzbar)")
+                    }
                     TableRow(label: "= Konto-Stand am 31.12.2027", value: Fmt.eur(r.liq27), note: "Vor FA-Erstattung")
                     TableRow(label: r.erstattung >= 0 ? "+ Finanzamt-Erstattung (Okt. 2028)" : "− Finanzamt-Nachzahlung (Okt. 2028)",
                              value: Fmt.signedEur(r.erstattung), note: "Steuerbescheid 2027",
