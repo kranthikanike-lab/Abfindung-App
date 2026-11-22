@@ -65,11 +65,9 @@ struct RunwayProContent: View {
                     }
 
                     Card(title: "Lebensphasen-Zeitstrahl (Monate ab Jan. 2027)") { PhaseChart(std: std, spr: spr) }
-                    Card(title: "Konto-Liquiditätsverlauf (€) inkl. Okt. 2028 FA-Sprung") {
-                        MonthLineChart(series: [
-                            LineSeries(name: "Sprinter Konto-Cash", values: spr.curve, color: Theme.success),
-                            LineSeries(name: "Standard Konto-Cash", values: std.curve, color: Theme.accent)
-                        ])
+                    Card(title: "Konto-Verlauf (€)",
+                         subtitle: "Grün: Guthaben, rot: Defizit. Die Markierungen zeigen Auszahlung, Finanzamt-Erstattung, Ende von ALG 1 und den Monat, in dem das Geld aufgebraucht ist.") {
+                        RunwayBalanceChart(std: std, spr: spr)
                     }
                 }
             }
