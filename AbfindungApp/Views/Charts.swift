@@ -113,11 +113,11 @@ struct DonutChart: View {
 struct AgChart: View {
     let r: Results
     var body: some View {
-        let slices = [DonutChart.Slice(name: "Sofort-Netto", value: r.netVoll, color: Theme.accent),
+        let slices = [DonutChart.Slice(name: "Sofort-Netto", value: r.netVoll, color: Theme.blue),
                       DonutChart.Slice(name: "Lohnsteuer-Einbehalt", value: r.einbehalten, color: Theme.danger)]
         VStack(spacing: 8) {
             DonutChart(slices: slices)
-            LegendRow(items: [("Sofort-Netto", Theme.accent, Fmt.eur(r.netVoll)),
+            LegendRow(items: [("Sofort-Netto", Theme.blue, Fmt.eur(r.netVoll)),
                               ("Lohnsteuer-Einbehalt", Theme.danger, Fmt.eur(r.einbehalten))])
             ChartTouchHint()
         }
@@ -148,7 +148,7 @@ struct ErstattungChart: View {
 
     private var shown: [Bar] {
         let all = [
-            Bar(name: "Fünftel-Basis", value: r.baseFuenftelRefund, color: Theme.accent),
+            Bar(name: "Fünftel-Basis", value: r.baseFuenftelRefund, color: Theme.blue),
             Bar(name: "DRV (50% Fünftel)", value: r.drvFuenftelRefund2028, color: Theme.cyan),
             Bar(name: "Rürup", value: r.ruerupSaving.savings, color: Theme.success),
             Bar(name: "PV-IAB", value: r.iabSaving.savings, color: Theme.purple)
@@ -201,7 +201,7 @@ struct SprinterWaterfall: View {
         var run = 0.0
         var out: [Bar] = []
         out.append(Bar(name: "+ Netto-Prämie", lo: 0, hi: r.isolatedNettoPraemie,
-                       signed: r.isolatedNettoPraemie, color: Theme.accent))
+                       signed: r.isolatedNettoPraemie, color: Theme.blue))
         run += r.isolatedNettoPraemie
         out.append(Bar(name: "+ Fünftel-Steuer", lo: run, hi: run + r.pureFuenftelAdvantage,
                        signed: r.pureFuenftelAdvantage, color: Theme.success))
@@ -309,7 +309,7 @@ struct ComparisonAreaChart: View {
         let stdText: String = stdValue.map { Fmt.signedEur($0) } ?? "–"
         var rows: [ValueBubble.Row] = [
             ValueBubble.Row(label: sprName, value: sprText, color: Theme.success),
-            ValueBubble.Row(label: stdName, value: stdText, color: Theme.accent)
+            ValueBubble.Row(label: stdName, value: stdText, color: Theme.blue)
         ]
         if let a = sprValue, let b = stdValue {
             rows.append(ValueBubble.Row(label: "Differenz", value: Fmt.signedEur(a - b),
@@ -323,7 +323,7 @@ struct ComparisonAreaChart: View {
         ForEach(indices, id: \.self) { idx in
             AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Gemeinsam", low(idx)),
                      series: .value("Fläche", "base"))
-                .foregroundStyle(Theme.accent.opacity(0.38))
+                .foregroundStyle(Theme.blue.opacity(0.38))
         }
     }
 
@@ -404,9 +404,9 @@ struct ComparisonAreaChart: View {
             standardBand
             zeroRule
             markerRule
-            edge(std, name: stdName, color: Theme.accent)
+            edge(std, name: stdName, color: Theme.blue)
             edge(spr, name: sprName, color: Theme.success)
-            endDot(std, color: Theme.accent, show: stdEndDot)
+            endDot(std, color: Theme.blue, show: stdEndDot)
             endDot(spr, color: Theme.success, show: sprEndDot)
             selectionMark
         }
@@ -441,7 +441,7 @@ struct ComparisonAreaChart: View {
     private var legend: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 12) {
-                swatch(Theme.accent.opacity(0.5), "Gemeinsamer Stand")
+                swatch(Theme.blue.opacity(0.5), "Gemeinsamer Stand")
                 swatch(Theme.success.opacity(0.75), "\(sprName) vorn")
                 swatch(Theme.warning.opacity(0.75), "\(stdName) vorn")
                 Spacer(minLength: 0)
@@ -452,7 +452,7 @@ struct ComparisonAreaChart: View {
                     Text("Linie \(sprName)").font(.caption)
                 }
                 HStack(spacing: 4) {
-                    Rectangle().fill(Theme.accent).frame(width: 12, height: 3)
+                    Rectangle().fill(Theme.blue).frame(width: 12, height: 3)
                     Text("Linie \(stdName)").font(.caption)
                 }
                 if let label = markerLabel {
@@ -581,7 +581,7 @@ struct RunwayBalanceChart: View {
             GridRow {
                 Text("")
                 Text("Sprinter").font(.caption.weight(.bold)).foregroundStyle(Theme.success)
-                Text("Standard").font(.caption.weight(.bold)).foregroundStyle(Theme.accent)
+                Text("Standard").font(.caption.weight(.bold)).foregroundStyle(Theme.blue)
             }
             GridRow {
                 Text("Auszahlung").font(.caption)

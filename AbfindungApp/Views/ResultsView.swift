@@ -88,9 +88,10 @@ struct ResultsView: View {
             }
             .padding()
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.pageBackground)
         .navigationTitle("Ergebnis")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { AppToolbar() }
+        .themedBars()
     }
 }

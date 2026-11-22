@@ -1,15 +1,57 @@
 import SwiftUI
 
+extension Color {
+    /// Color that adapts to light and dark mode.
+    init(light: Color, dark: Color) {
+        self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light) })
+    }
+}
+
 enum Theme {
-    static let accent = Color(red: 0.231, green: 0.510, blue: 0.965)
-    static let success = Color(red: 0.063, green: 0.725, blue: 0.506)
-    static let warning = Color(red: 0.961, green: 0.620, blue: 0.043)
-    static let danger = Color(red: 0.937, green: 0.267, blue: 0.267)
-    static let purple = Color(red: 0.659, green: 0.333, blue: 0.969)
-    static let cyan = Color(red: 0.024, green: 0.714, blue: 0.831)
+    // App accent: teal (deeper in light mode, brighter in dark mode for contrast).
+    static let accent = Color(light: Color(red: 0.059, green: 0.463, blue: 0.431),
+                              dark: Color(red: 0.176, green: 0.831, blue: 0.749))
+    // Data series blue (e.g. Standard scenario). Kept separate from the teal accent so series stay distinguishable.
+    static let blue = Color(light: Color(red: 0.145, green: 0.388, blue: 0.922),
+                            dark: Color(red: 0.231, green: 0.510, blue: 0.965))
+    static let success = Color(light: Color(red: 0.020, green: 0.588, blue: 0.412),
+                               dark: Color(red: 0.063, green: 0.725, blue: 0.506))
+    static let warning = Color(light: Color(red: 0.851, green: 0.467, blue: 0.024),
+                               dark: Color(red: 0.961, green: 0.620, blue: 0.043))
+    static let danger = Color(light: Color(red: 0.863, green: 0.149, blue: 0.149),
+                              dark: Color(red: 0.937, green: 0.267, blue: 0.267))
+    static let purple = Color(light: Color(red: 0.486, green: 0.227, blue: 0.929),
+                              dark: Color(red: 0.659, green: 0.333, blue: 0.969))
+    static let cyan = Color(light: Color(red: 0.031, green: 0.569, blue: 0.698),
+                            dark: Color(red: 0.024, green: 0.714, blue: 0.831))
     static let indigo = Color(red: 0.388, green: 0.4, blue: 0.945)
     static let orange = Color(red: 0.976, green: 0.451, blue: 0.086)
     static let yellow = Color(red: 0.918, green: 0.702, blue: 0.031)
+
+    // Surfaces: soft teal-grey page, white cards (light mode); system colors in dark mode.
+    static let pageBackground = Color(light: Color(red: 0.929, green: 0.949, blue: 0.949),
+                                      dark: Color(.systemGroupedBackground))
+    static let card = Color(light: .white, dark: Color(.secondarySystemGroupedBackground))
+    static let field = Color(light: Color(red: 0.945, green: 0.965, blue: 0.965),
+                             dark: Theme.field)
+    static let border = Color(light: Color(red: 0.059, green: 0.463, blue: 0.431).opacity(0.14),
+                              dark: Color.white.opacity(0.08))
+}
+
+extension View {
+    /// Card surface with a hairline border so white cards stay defined on the teal-grey page.
+    func cardBackground(radius: CGFloat = 16) -> some View {
+        self.background(Theme.card, in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Theme.border, lineWidth: 0.6))
+    }
+
+    /// Navigation bar and tab bar in the theme colors.
+    func themedBars() -> some View {
+        self.toolbarBackground(Theme.pageBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Theme.card, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+    }
 }
 
 struct Card<Content: View>: View {
@@ -28,7 +70,7 @@ struct Card<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground(radius: 16)
     }
 }
 
@@ -90,7 +132,7 @@ struct NumberField: View {
                 if !suffix.isEmpty { Text(suffix).foregroundStyle(.secondary) }
             }
             .padding(10)
-            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+            .background(Theme.field, in: RoundedRectangle(cornerRadius: 10))
             if let hint { Hint(hint) }
         }
     }
@@ -123,7 +165,7 @@ struct KPITile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        .cardBackground(radius: 14)
     }
 }
 
@@ -208,7 +250,7 @@ struct SliderCard: View {
             }
         }
         .padding(12)
-        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(Theme.field, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -252,7 +294,7 @@ struct ResultTable<Content: View>: View {
             }
         }
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground(radius: 16)
     }
 }
 
@@ -312,6 +354,6 @@ struct ProLockedView: View {
             }
             .padding()
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.pageBackground)
     }
 }

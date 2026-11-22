@@ -28,10 +28,11 @@ struct InputsView: View {
             .padding(.bottom, 70)
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.pageBackground)
         .navigationTitle("Abfindungs-Optimizer")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { AppToolbar() }
+        .themedBars()
         .safeAreaInset(edge: .bottom) { StickyKPIBar() }
         .sheet(isPresented: $showDrv) { DrvDeficitSheet() }
         .toolbar {
@@ -77,7 +78,7 @@ struct InputsView: View {
                     TextField("2,5", value: m.inputs.zusatzbeitrag, format: .number)
                         .keyboardType(.decimalPad)
                         .padding(10)
-                        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+                        .background(Theme.field, in: RoundedRectangle(cornerRadius: 10))
                         .frame(maxWidth: 110)
                     Picker("Status", selection: m.inputs.preExitGkvPflicht) {
                         Text("Pflicht (§19)").tag(true)

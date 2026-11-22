@@ -77,7 +77,7 @@ struct RunwayProContent: View {
             .padding()
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.pageBackground)
     }
 }
 
@@ -90,6 +90,7 @@ struct RunwayView: View {
         .navigationTitle("Reichweite")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { AppToolbar() }
+        .themedBars()
     }
 }
 
@@ -162,7 +163,7 @@ struct CrossoverProContent: View {
             .padding()
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.pageBackground)
     }
 }
 
@@ -175,5 +176,6 @@ struct CrossoverView: View {
         .navigationTitle("Gehalts-Switch")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { AppToolbar() }
+        .themedBars()
     }
 }
