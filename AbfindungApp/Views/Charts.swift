@@ -267,9 +267,11 @@ struct SprinterDetails: View {
 
 // MARK: - Comparison area chart (Reichweite balance and Gehalts-Switch)
 
-/// Two filled series on a month axis. Standard is the blue base; Sprinter is green.
-/// Green sits on top of blue only where Sprinter is ahead (the advantage). Where Sprinter is lower,
-/// green is drawn inside the blue area, so the two colors are never stacked on each other.
+/// Two series on a month axis, drawn as non-overlapping layers:
+/// - blue: the shared base, from zero up to the lower of the two lines
+/// - green band: between the lines where Sprinter is ahead
+/// - orange band: between the lines where Standard is ahead
+/// Thin edge lines show each scenario (Sprinter green, Standard blue). A series that has ended counts as 0.
 struct ComparisonAreaChart: View {
     let spr: [Double]
     let std: [Double]
@@ -293,12 +295,12 @@ struct ComparisonAreaChart: View {
         return min(max(0, x), maxIndex)
     }
 
-    /// Lower edge of the green area: Standard's value where Sprinter is ahead, otherwise zero.
-    private func sprBase(_ idx: Int, _ value: Double) -> Double {
-        guard idx < std.count else { return 0 }
-        let s = std[idx]
-        return value >= s ? s : 0
-    }
+    private var indices: [Int] { Array(0...maxIndex) }
+
+    private func sprValue(_ idx: Int) -> Double { idx < spr.count ? spr[idx] : 0 }
+    private func stdValue(_ idx: Int) -> Double { idx < std.count ? std[idx] : 0 }
+    private func low(_ idx: Int) -> Double { min(sprValue(idx), stdValue(idx)) }
+    private func high(_ idx: Int) -> Double { max(sprValue(idx), stdValue(idx)) }
 
     private func bubble(at idx: Int) -> ValueBubble {
         let sprValue: Double? = idx < spr.count ? spr[idx] : nil
@@ -317,20 +319,33 @@ struct ComparisonAreaChart: View {
     }
 
     @ChartContentBuilder
-    private var stdArea: some ChartContent {
-        ForEach(Array(std.enumerated()), id: \.offset) { idx, v in
-            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Standard", v),
-                     series: .value("Fläche", "std"))
+    private var baseArea: some ChartContent {
+        ForEach(indices, id: \.self) { idx in
+            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Gemeinsam", low(idx)),
+                     series: .value("Fläche", "base"))
                 .foregroundStyle(Theme.accent.opacity(0.38))
         }
     }
 
+    /// Band between the lines where Sprinter is ahead (thickness 0 elsewhere, so it never jumps).
     @ChartContentBuilder
-    private var sprArea: some ChartContent {
-        ForEach(Array(spr.enumerated()), id: \.offset) { idx, v in
-            AreaMark(x: .value("Monat", idx), yStart: .value("Basis", sprBase(idx, v)), yEnd: .value("Sprinter", v),
-                     series: .value("Fläche", "spr"))
-                .foregroundStyle(Theme.success.opacity(0.6))
+    private var sprinterBand: some ChartContent {
+        ForEach(indices, id: \.self) { idx in
+            AreaMark(x: .value("Monat", idx), yStart: .value("Von", low(idx)),
+                     yEnd: .value("Bis", sprValue(idx) > stdValue(idx) ? high(idx) : low(idx)),
+                     series: .value("Fläche", "sprinterBand"))
+                .foregroundStyle(Theme.success.opacity(0.65))
+        }
+    }
+
+    /// Band between the lines where Standard is ahead.
+    @ChartContentBuilder
+    private var standardBand: some ChartContent {
+        ForEach(indices, id: \.self) { idx in
+            AreaMark(x: .value("Monat", idx), yStart: .value("Von", low(idx)),
+                     yEnd: .value("Bis", stdValue(idx) > sprValue(idx) ? high(idx) : low(idx)),
+                     series: .value("Fläche", "standardBand"))
+                .foregroundStyle(Theme.warning.opacity(0.65))
         }
     }
 
@@ -384,8 +399,9 @@ struct ComparisonAreaChart: View {
 
     private var chart: some View {
         Chart {
-            stdArea
-            sprArea
+            baseArea
+            sprinterBand
+            standardBand
             zeroRule
             markerRule
             edge(std, name: stdName, color: Theme.accent)
@@ -415,29 +431,44 @@ struct ComparisonAreaChart: View {
         .frame(height: height)
     }
 
+    private func swatch(_ color: Color, _ text: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 12, height: 10)
+            Text(text).font(.caption)
+        }
+    }
+
     private var legend: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 4) {
-                RoundedRectangle(cornerRadius: 2).fill(Theme.success.opacity(0.7)).frame(width: 12, height: 10)
-                Text(sprName).font(.caption)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                swatch(Theme.accent.opacity(0.5), "Gemeinsamer Stand")
+                swatch(Theme.success.opacity(0.75), "\(sprName) vorn")
+                swatch(Theme.warning.opacity(0.75), "\(stdName) vorn")
+                Spacer(minLength: 0)
             }
-            HStack(spacing: 4) {
-                RoundedRectangle(cornerRadius: 2).fill(Theme.accent.opacity(0.5)).frame(width: 12, height: 10)
-                Text(stdName).font(.caption)
-            }
-            if let label = markerLabel {
+            HStack(spacing: 12) {
                 HStack(spacing: 4) {
-                    Rectangle().fill(markerColor).frame(width: 12, height: 3)
-                    Text(label).font(.caption)
+                    Rectangle().fill(Theme.success).frame(width: 12, height: 3)
+                    Text("Linie \(sprName)").font(.caption)
                 }
-            }
-            if let label = zeroLabel {
                 HStack(spacing: 4) {
-                    Rectangle().fill(zeroColor).frame(width: 12, height: 3)
-                    Text(label).font(.caption)
+                    Rectangle().fill(Theme.accent).frame(width: 12, height: 3)
+                    Text("Linie \(stdName)").font(.caption)
                 }
+                if let label = markerLabel {
+                    HStack(spacing: 4) {
+                        Rectangle().fill(markerColor).frame(width: 12, height: 3)
+                        Text(label).font(.caption)
+                    }
+                }
+                if let label = zeroLabel {
+                    HStack(spacing: 4) {
+                        Rectangle().fill(zeroColor).frame(width: 12, height: 3)
+                        Text(label).font(.caption)
+                    }
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
         }
     }
 

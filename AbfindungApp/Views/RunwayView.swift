@@ -69,7 +69,7 @@ struct RunwayProContent: View {
                         PhaseChart(std: std, spr: spr, startIndex: r.ctx?.preMonths ?? 0)
                     }
                     Card(title: "Konto-Verlauf (€)",
-                         subtitle: "Sprinter grün, Standard blau. Grün liegt nur dort auf Blau, wo Sprinter vorn liegt. Ein Punkt zeigt, wo das Geld aufgebraucht ist.") {
+                         subtitle: "Blau: Stand, den beide haben. Grün: Sprinter liegt vorn. Orange: Standard liegt vorn. Ein Punkt zeigt, wo das Geld aufgebraucht ist.") {
                         RunwayBalanceChart(std: std, spr: spr)
                     }
                 }
@@ -151,7 +151,7 @@ struct CrossoverProContent: View {
                         }
                     }
                     Card(title: "Vermögens-Vorsprung vs. Verbleib im alten Job (€)",
-                         subtitle: "Standard vs. Sprinter bis Break-Even (0 €)") {
+                         subtitle: "Standard vs. Sprinter bis Break-Even (0 €). Grün: Sprinter liegt vorn, Orange: Standard liegt vorn.") {
                         ComparisonAreaChart(spr: spr.advSeries, std: std.advSeries,
                                             sprName: "Sprinter Vorsprung", stdName: "Standard Vorsprung",
                                             zeroColor: Theme.danger, zeroDashed: true,
