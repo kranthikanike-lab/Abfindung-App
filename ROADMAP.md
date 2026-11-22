@@ -2,7 +2,7 @@
 
 ## Next features (one `feature/*` branch each, merged into `main` after green CI + phone test, then a `stable/*` marker)
 1. `feature/chart-touch-values` – touch values on charts, new Reichweite balance chart (in progress)
-2. `feature/teal-theme` – light mode: neutral teal-grey background, white cards, teal accent
+2. `feature/color-theme` – light mode: neutral teal-grey background, white cards, teal accent
 3. `feature/english` – in-app language toggle (German / English), German terms kept where useful; tooltips and legal text may stay German
 4. Release steps (last): StoreKit one-time purchase "Pro 2027", privacy policy, App Store page
 

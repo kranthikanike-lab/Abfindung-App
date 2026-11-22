@@ -33,7 +33,7 @@ enum Theme {
                                       dark: Color(.systemGroupedBackground))
     static let card = Color(light: .white, dark: Color(.secondarySystemGroupedBackground))
     static let field = Color(light: Color(red: 0.945, green: 0.965, blue: 0.965),
-                             dark: Theme.field)
+                             dark: Color(.tertiarySystemGroupedBackground))
     static let border = Color(light: Color(red: 0.059, green: 0.463, blue: 0.431).opacity(0.14),
                               dark: Color.white.opacity(0.08))
 }
