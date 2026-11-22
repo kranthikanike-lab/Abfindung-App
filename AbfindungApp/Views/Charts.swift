@@ -265,79 +265,186 @@ struct SprinterDetails: View {
     }
 }
 
-// MARK: - Month line chart (used by the Gehalts-Switch)
+// MARK: - Comparison area chart (Reichweite balance and Gehalts-Switch)
 
-struct LineSeries: Identifiable {
-    let id = UUID()
-    let name: String
-    let values: [Double]
-    let color: Color
-}
-
-struct MonthLineChart: View {
-    let series: [LineSeries]
-    var zeroLine = false
-    var height: CGFloat = 230
+/// Two filled series on a month axis. Standard is the blue base; Sprinter is green.
+/// Green sits on top of blue only where Sprinter is ahead (the advantage). Where Sprinter is lower,
+/// green is drawn inside the blue area, so the two colors are never stacked on each other.
+struct ComparisonAreaChart: View {
+    let spr: [Double]
+    let std: [Double]
+    var sprName = "Sprinter"
+    var stdName = "Standard"
+    var zeroColor: Color = Color.primary.opacity(0.55)
+    var zeroDashed = false
+    var zeroLabel: String? = nil
+    var markerMonth: Int? = nil
+    var markerLabel: String? = nil
+    var markerColor: Color = Theme.purple
+    var sprEndDot = false
+    var stdEndDot = false
+    var height: CGFloat = 250
     @State private var selectedX: Int?
 
-    private var maxIndex: Int { max(0, (series.map { $0.values.count }.max() ?? 1) - 1) }
+    private var maxIndex: Int { max(0, max(std.count, spr.count) - 1) }
 
     private var selectedIndex: Int? {
         guard let x = selectedX else { return nil }
         return min(max(0, x), maxIndex)
     }
 
+    /// Lower edge of the green area: Standard's value where Sprinter is ahead, otherwise zero.
+    private func sprBase(_ idx: Int, _ value: Double) -> Double {
+        guard idx < std.count else { return 0 }
+        let s = std[idx]
+        return value >= s ? s : 0
+    }
+
     private func bubble(at idx: Int) -> ValueBubble {
-        var rows: [ValueBubble.Row] = []
-        for s in series {
-            let text: String = idx < s.values.count ? Fmt.signedEur(s.values[idx]) : "–"
-            rows.append(ValueBubble.Row(label: s.name, value: text, color: s.color))
+        let sprValue: Double? = idx < spr.count ? spr[idx] : nil
+        let stdValue: Double? = idx < std.count ? std[idx] : nil
+        let sprText: String = sprValue.map { Fmt.signedEur($0) } ?? "–"
+        let stdText: String = stdValue.map { Fmt.signedEur($0) } ?? "–"
+        var rows: [ValueBubble.Row] = [
+            ValueBubble.Row(label: sprName, value: sprText, color: Theme.success),
+            ValueBubble.Row(label: stdName, value: stdText, color: Theme.accent)
+        ]
+        if let a = sprValue, let b = stdValue {
+            rows.append(ValueBubble.Row(label: "Differenz", value: Fmt.signedEur(a - b),
+                                        color: a >= b ? Theme.success : Theme.warning))
         }
         return ValueBubble(title: monthLabel(idx), rows: rows)
     }
 
+    @ChartContentBuilder
+    private var stdArea: some ChartContent {
+        ForEach(Array(std.enumerated()), id: \.offset) { idx, v in
+            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Standard", v),
+                     series: .value("Fläche", "std"))
+                .foregroundStyle(Theme.accent.opacity(0.38))
+        }
+    }
+
+    @ChartContentBuilder
+    private var sprArea: some ChartContent {
+        ForEach(Array(spr.enumerated()), id: \.offset) { idx, v in
+            AreaMark(x: .value("Monat", idx), yStart: .value("Basis", sprBase(idx, v)), yEnd: .value("Sprinter", v),
+                     series: .value("Fläche", "spr"))
+                .foregroundStyle(Theme.success.opacity(0.6))
+        }
+    }
+
+    @ChartContentBuilder
+    private func edge(_ values: [Double], name: String, color: Color) -> some ChartContent {
+        ForEach(Array(values.enumerated()), id: \.offset) { idx, v in
+            LineMark(x: .value("Monat", idx), y: .value("Wert", v), series: .value("Linie", name))
+                .foregroundStyle(color)
+                .lineStyle(StrokeStyle(lineWidth: 1.6))
+        }
+    }
+
+    @ChartContentBuilder
+    private var zeroRule: some ChartContent {
+        if zeroDashed {
+            RuleMark(y: .value("Null", 0)).foregroundStyle(zeroColor)
+                .lineStyle(StrokeStyle(lineWidth: 1.3, dash: [5, 4]))
+        } else {
+            RuleMark(y: .value("Null", 0)).foregroundStyle(zeroColor)
+        }
+    }
+
+    @ChartContentBuilder
+    private var markerRule: some ChartContent {
+        if let m = markerMonth, m <= maxIndex {
+            RuleMark(x: .value("Marker", m))
+                .foregroundStyle(markerColor.opacity(0.85))
+                .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+        }
+    }
+
+    @ChartContentBuilder
+    private func endDot(_ values: [Double], color: Color, show: Bool) -> some ChartContent {
+        if show, let last = values.last {
+            PointMark(x: .value("Monat", values.count - 1), y: .value("Wert", last))
+                .symbolSize(70)
+                .foregroundStyle(color)
+        }
+    }
+
+    @ChartContentBuilder
+    private var selectionMark: some ChartContent {
+        if let idx = selectedIndex {
+            RuleMark(x: .value("Monat", idx))
+                .foregroundStyle(Color.secondary.opacity(0.5))
+                .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                    bubble(at: idx)
+                }
+        }
+    }
+
+    private var chart: some View {
+        Chart {
+            stdArea
+            sprArea
+            zeroRule
+            markerRule
+            edge(std, name: stdName, color: Theme.accent)
+            edge(spr, name: sprName, color: Theme.success)
+            endDot(std, color: Theme.accent, show: stdEndDot)
+            endDot(spr, color: Theme.success, show: sprEndDot)
+            selectionMark
+        }
+        .chartXSelection(value: $selectedX)
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 5)) { v in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks { v in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let d = v.as(Double.self) { Text(Fmt.eur(d)).font(.system(size: 9)) }
+                }
+            }
+        }
+        .chartLegend(.hidden)
+        .frame(height: height)
+    }
+
+    private var legend: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 4) {
+                RoundedRectangle(cornerRadius: 2).fill(Theme.success.opacity(0.7)).frame(width: 12, height: 10)
+                Text(sprName).font(.caption)
+            }
+            HStack(spacing: 4) {
+                RoundedRectangle(cornerRadius: 2).fill(Theme.accent.opacity(0.5)).frame(width: 12, height: 10)
+                Text(stdName).font(.caption)
+            }
+            if let label = markerLabel {
+                HStack(spacing: 4) {
+                    Rectangle().fill(markerColor).frame(width: 12, height: 3)
+                    Text(label).font(.caption)
+                }
+            }
+            if let label = zeroLabel {
+                HStack(spacing: 4) {
+                    Rectangle().fill(zeroColor).frame(width: 12, height: 3)
+                    Text(label).font(.caption)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
     var body: some View {
-        VStack(spacing: 8) {
-            Chart {
-                ForEach(series) { s in
-                    ForEach(Array(s.values.enumerated()), id: \.offset) { idx, v in
-                        LineMark(x: .value("Monat", idx), y: .value("€", v), series: .value("Reihe", s.name))
-                            .foregroundStyle(by: .value("Reihe", s.name))
-                            .interpolationMethod(.monotone)
-                    }
-                }
-                if zeroLine {
-                    RuleMark(y: .value("0", 0)).foregroundStyle(Theme.danger)
-                        .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
-                }
-                if let idx = selectedIndex {
-                    RuleMark(x: .value("Monat", idx))
-                        .foregroundStyle(Color.secondary.opacity(0.4))
-                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            bubble(at: idx)
-                        }
-                }
-            }
-            .chartXSelection(value: $selectedX)
-            .chartForegroundStyleScale(domain: series.map(\.name), range: series.map(\.color))
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { v in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks { v in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let d = v.as(Double.self) { Text(Fmt.eur(d)).font(.system(size: 9)) }
-                    }
-                }
-            }
-            .chartLegend(position: .bottom, alignment: .leading)
-            .frame(height: height)
+        VStack(alignment: .leading, spacing: 8) {
+            chart
+            legend
             ChartTouchHint()
         }
     }
@@ -382,7 +489,7 @@ struct PhaseChart: View {
         let mine: [Seg] = all.filter { $0.scenario == scenario }
         for (idx, seg) in mine.enumerated() {
             let text: String = seg.months > 0
-                ? "\(monthLabel(seg.from)) – \(monthLabel(seg.to - 1)) · \(seg.months) Mon."
+                ? "\(monthLabelShort(seg.from)) – \(monthLabelShort(seg.to - 1)) · \(seg.months) Mon."
                 : "–"
             rows.append(ValueBubble.Row(label: seg.phase, value: text, color: colors[idx]))
         }
@@ -414,7 +521,7 @@ struct PhaseChart: View {
                 AxisMarks(values: .automatic(desiredCount: 5)) { v in
                     AxisGridLine()
                     AxisValueLabel {
-                        if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
+                        if let i = v.as(Int.self) { Text(monthLabelShort(i)).font(.system(size: 9)) }
                     }
                 }
             }
@@ -426,113 +533,13 @@ struct PhaseChart: View {
     }
 }
 
-/// Account balance over time for both scenarios in their own colors (same colors as the KPI tiles):
-/// Sprinter green, Standard blue. The area below zero is shaded light red. A shared marker shows the
-/// Finanzamt refund in Oct. 2028, and a dot marks the month the money runs out in each scenario.
+/// Account balance for both scenarios as filled areas (see ComparisonAreaChart), a shared marker for the
+/// Finanzamt refund in Oct. 2028, a dot where the money runs out, and a table with the key dates.
 struct RunwayBalanceChart: View {
     let std: RunwayResult
     let spr: RunwayResult
-    @State private var selectedX: Int?
 
-    private let sprName = "Sprinter"
-    private let stdName = "Standard"
     private let faMonth = 21   // Oct 2028
-
-    private var maxIndex: Int { max(0, max(std.curve.count, spr.curve.count) - 1) }
-
-    private var minValue: Double {
-        min(0, min(std.curve.min() ?? 0, spr.curve.min() ?? 0))
-    }
-
-    private var selectedIndex: Int? {
-        guard let x = selectedX else { return nil }
-        return min(max(0, x), maxIndex)
-    }
-
-    private func bubble(at idx: Int) -> ValueBubble {
-        let sprText: String = idx < spr.curve.count ? Fmt.signedEur(spr.curve[idx]) : "–"
-        let stdText: String = idx < std.curve.count ? Fmt.signedEur(std.curve[idx]) : "–"
-        let rows: [ValueBubble.Row] = [
-            ValueBubble.Row(label: sprName, value: sprText, color: Theme.success),
-            ValueBubble.Row(label: stdName, value: stdText, color: Theme.accent)
-        ]
-        return ValueBubble(title: monthLabel(idx), rows: rows)
-    }
-
-    @ChartContentBuilder
-    private var dangerZone: some ChartContent {
-        if minValue < 0 {
-            RectangleMark(xStart: .value("Start", 0), xEnd: .value("Ende", maxIndex),
-                          yStart: .value("Minimum", minValue), yEnd: .value("Null", 0))
-                .foregroundStyle(Theme.danger.opacity(0.08))
-        }
-    }
-
-    @ChartContentBuilder
-    private func line(_ curve: [Double], name: String) -> some ChartContent {
-        ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
-            LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Reihe", name))
-                .foregroundStyle(by: .value("Szenario", name))
-                .lineStyle(StrokeStyle(lineWidth: 2.2))
-        }
-    }
-
-    @ChartContentBuilder
-    private func endDot(_ r: RunwayResult, color: Color) -> some ChartContent {
-        if r.exhaustedMonth < 240, let last = r.curve.last {
-            PointMark(x: .value("Monat", r.curve.count - 1), y: .value("Saldo", last))
-                .symbolSize(70)
-                .foregroundStyle(color)
-        }
-    }
-
-    @ChartContentBuilder
-    private var selectionMark: some ChartContent {
-        if let idx = selectedIndex {
-            RuleMark(x: .value("Monat", idx))
-                .foregroundStyle(Color.secondary.opacity(0.5))
-                .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                    bubble(at: idx)
-                }
-        }
-    }
-
-    private var chart: some View {
-        Chart {
-            dangerZone
-            RuleMark(y: .value("Null", 0)).foregroundStyle(Color.primary.opacity(0.55))
-            if faMonth <= maxIndex {
-                RuleMark(x: .value("FA", faMonth))
-                    .foregroundStyle(Theme.purple.opacity(0.8))
-                    .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
-            }
-            line(std.curve, name: stdName)
-            line(spr.curve, name: sprName)
-            endDot(std, color: Theme.accent)
-            endDot(spr, color: Theme.success)
-            selectionMark
-        }
-        .chartXSelection(value: $selectedX)
-        .chartForegroundStyleScale(domain: [sprName, stdName], range: [Theme.success, Theme.accent])
-        .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 5)) { v in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
-                }
-            }
-        }
-        .chartYAxis {
-            AxisMarks { v in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let d = v.as(Double.self) { Text(Fmt.eur(d)).font(.system(size: 9)) }
-                }
-            }
-        }
-        .chartLegend(position: .bottom, alignment: .leading)
-        .frame(height: 250)
-    }
 
     private func endText(_ r: RunwayResult) -> String {
         r.exhaustedMonth < 240 ? monthLabel(r.curve.count - 1) : "> 20 Jahre"
@@ -541,9 +548,9 @@ struct RunwayBalanceChart: View {
     private var datesTable: some View {
         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
             GridRow {
-                Text("").gridColumnAlignment(.leading)
-                Text(sprName).font(.caption.weight(.bold)).foregroundStyle(Theme.success)
-                Text(stdName).font(.caption.weight(.bold)).foregroundStyle(Theme.accent)
+                Text("")
+                Text("Sprinter").font(.caption.weight(.bold)).foregroundStyle(Theme.success)
+                Text("Standard").font(.caption.weight(.bold)).foregroundStyle(Theme.accent)
             }
             GridRow {
                 Text("Auszahlung").font(.caption)
@@ -565,16 +572,10 @@ struct RunwayBalanceChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            chart
-            HStack(spacing: 6) {
-                Rectangle().fill(Theme.purple).frame(width: 14, height: 3)
-                Text("Finanzamt-Erstattung \(monthLabel(faMonth))").font(.caption)
-                Spacer()
-                Rectangle().fill(Theme.danger.opacity(0.25)).frame(width: 14, height: 8)
-                Text("Defizit").font(.caption)
-            }
+            ComparisonAreaChart(spr: spr.curve, std: std.curve,
+                                markerMonth: faMonth, markerLabel: "FA \(monthLabel(faMonth))",
+                                sprEndDot: spr.exhaustedMonth < 240, stdEndDot: std.exhaustedMonth < 240)
             datesTable
-            ChartTouchHint()
         }
     }
 }

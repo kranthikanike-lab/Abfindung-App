@@ -18,6 +18,14 @@ func monthLabel(_ offsetFromJan27: Int) -> String {
     return "\(names[total % 12]) \(2027 + total / 12)"
 }
 
+/// Compact label for crowded axes, e.g. "Feb 27".
+func monthLabelShort(_ offsetFromJan27: Int) -> String {
+    let names = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    let total = max(0, offsetFromJan27)
+    let yy = (2027 + total / 12) % 100
+    return "\(names[total % 12]) \(String(format: "%02d", yy))"
+}
+
 enum Runway {
     /// Port of `simulateRunwayScenario` (Section C: Cash-Burn & Reichweite).
     static func simulate(_ ctx: SimCtx, _ i: Inputs, sprinter: Bool) -> RunwayResult {
