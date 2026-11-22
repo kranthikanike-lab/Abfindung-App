@@ -287,6 +287,15 @@ struct MonthLineChart: View {
         return min(max(0, x), maxIndex)
     }
 
+    private func bubble(at idx: Int) -> ValueBubble {
+        var rows: [ValueBubble.Row] = []
+        for s in series {
+            let text: String = idx < s.values.count ? Fmt.signedEur(s.values[idx]) : "–"
+            rows.append(ValueBubble.Row(label: s.name, value: text, color: s.color))
+        }
+        return ValueBubble(title: monthLabel(idx), rows: rows)
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             Chart {
@@ -305,12 +314,7 @@ struct MonthLineChart: View {
                     RuleMark(x: .value("Monat", idx))
                         .foregroundStyle(Color.secondary.opacity(0.4))
                         .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            ValueBubble(title: monthLabel(idx),
-                                        rows: series.map { s in
-                                            .init(label: s.name,
-                                                  value: idx < s.values.count ? Fmt.signedEur(s.values[idx]) : "–",
-                                                  color: s.color)
-                                        })
+                            bubble(at: idx)
                         }
                 }
             }
@@ -364,8 +368,17 @@ struct PhaseChart: View {
          Seg(scenario: name, phase: phases[3], months: r.postPhaseMonths)]
     }
 
+    private func bubble(for scenario: String, in all: [Seg]) -> ValueBubble {
+        var rows: [ValueBubble.Row] = []
+        let mine: [Seg] = all.filter { $0.scenario == scenario }
+        for (idx, seg) in mine.enumerated() {
+            rows.append(ValueBubble.Row(label: seg.phase, value: "\(seg.months) Mon.", color: colors[idx]))
+        }
+        return ValueBubble(title: scenario, rows: rows)
+    }
+
     var body: some View {
-        let all = segs("Standard (Frist)", std) + segs("Sprinter (Sofort)", spr)
+        let all: [Seg] = segs("Standard (Frist)", std) + segs("Sprinter (Sofort)", spr)
         VStack(spacing: 8) {
             Chart {
                 ForEach(all) { s in
@@ -374,14 +387,10 @@ struct PhaseChart: View {
                         .opacity(selectedScenario == nil || selectedScenario == s.scenario ? 1 : 0.4)
                 }
                 if let sel = selectedScenario {
-                    let rows = all.filter { $0.scenario == sel }
                     RuleMark(y: .value("Szenario", sel))
                         .foregroundStyle(Color.clear)
                         .annotation(position: .overlay, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
-                            ValueBubble(title: sel,
-                                        rows: rows.enumerated().map { idx, s in
-                                            .init(label: s.phase, value: "\(s.months) Mon.", color: colors[idx])
-                                        })
+                            bubble(for: sel, in: all)
                         }
                 }
             }
@@ -433,74 +442,108 @@ struct RunwayBalanceChart: View {
         return min(max(0, x), max(0, main.curve.count - 1))
     }
 
+    private func bubble(at idx: Int) -> ValueBubble {
+        let mainText: String = Fmt.signedEur(main.curve[idx])
+        let otherText: String = idx < other.curve.count ? Fmt.signedEur(other.curve[idx]) : "–"
+        let rows: [ValueBubble.Row] = [
+            ValueBubble.Row(label: mainName, value: mainText, color: Color.primary),
+            ValueBubble.Row(label: otherName, value: otherText, color: Color.secondary)
+        ]
+        return ValueBubble(title: monthLabel(idx), rows: rows)
+    }
+
+    @ChartContentBuilder
+    private func areaMarks(_ curve: [Double]) -> some ChartContent {
+        ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
+            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Plus", max(v, 0)),
+                     series: .value("Bereich", "plus"), stacking: .unstacked)
+                .foregroundStyle(Theme.success.opacity(0.28))
+            AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Minus", min(v, 0)),
+                     series: .value("Bereich", "minus"), stacking: .unstacked)
+                .foregroundStyle(Theme.danger.opacity(0.35))
+        }
+    }
+
+    @ChartContentBuilder
+    private func otherLine(_ curve: [Double]) -> some ChartContent {
+        ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
+            LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Linie", otherName))
+                .foregroundStyle(Color.secondary.opacity(0.55))
+                .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
+        }
+    }
+
+    @ChartContentBuilder
+    private func mainLine(_ curve: [Double]) -> some ChartContent {
+        ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
+            LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Linie", mainName))
+                .foregroundStyle(Color.primary)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+        }
+    }
+
+    @ChartContentBuilder
+    private func eventMarks(_ evs: [Event]) -> some ChartContent {
+        ForEach(evs) { e in
+            RuleMark(x: .value("Ereignis", e.month))
+                .foregroundStyle(e.color.opacity(0.75))
+                .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
+        }
+    }
+
+    @ChartContentBuilder
+    private var selectionMark: some ChartContent {
+        if let idx = selectedIndex {
+            RuleMark(x: .value("Monat", idx))
+                .foregroundStyle(Color.secondary.opacity(0.5))
+                .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                    bubble(at: idx)
+                }
+        }
+    }
+
+    private var chart: some View {
+        let evs: [Event] = events
+        return Chart {
+            areaMarks(main.curve)
+            otherLine(other.curve)
+            mainLine(main.curve)
+            RuleMark(y: .value("Null", 0)).foregroundStyle(Color.primary.opacity(0.6))
+            eventMarks(evs)
+            selectionMark
+        }
+        .chartXSelection(value: $selectedX)
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 5)) { v in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks { v in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let d = v.as(Double.self) { Text(Fmt.eur(d)).font(.system(size: 9)) }
+                }
+            }
+        }
+        .chartLegend(.hidden)
+        .frame(height: 250)
+    }
+
     var body: some View {
-        let r = main
-        let evs = events
-        VStack(alignment: .leading, spacing: 10) {
+        let r: RunwayResult = main
+        let evs: [Event] = events
+        return VStack(alignment: .leading, spacing: 10) {
             Picker("Szenario", selection: $showSprinter) {
                 Text("Sprinter").tag(true)
                 Text("Standard").tag(false)
             }
             .pickerStyle(.segmented)
 
-            Chart {
-                ForEach(Array(r.curve.enumerated()), id: \.offset) { idx, v in
-                    AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Plus", max(v, 0)),
-                             series: .value("Bereich", "plus"), stacking: .unstacked)
-                        .foregroundStyle(Theme.success.opacity(0.28))
-                    AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Minus", min(v, 0)),
-                             series: .value("Bereich", "minus"), stacking: .unstacked)
-                        .foregroundStyle(Theme.danger.opacity(0.35))
-                }
-                ForEach(Array(other.curve.enumerated()), id: \.offset) { idx, v in
-                    LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Linie", otherName))
-                        .foregroundStyle(Color.secondary.opacity(0.55))
-                        .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
-                }
-                ForEach(Array(r.curve.enumerated()), id: \.offset) { idx, v in
-                    LineMark(x: .value("Monat", idx), y: .value("Saldo", v), series: .value("Linie", mainName))
-                        .foregroundStyle(Color.primary)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                }
-                RuleMark(y: .value("Null", 0)).foregroundStyle(Color.primary.opacity(0.6))
-                ForEach(evs) { e in
-                    RuleMark(x: .value("Ereignis", e.month))
-                        .foregroundStyle(e.color.opacity(0.75))
-                        .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
-                }
-                if let idx = selectedIndex {
-                    RuleMark(x: .value("Monat", idx))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
-                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            ValueBubble(title: monthLabel(idx),
-                                        rows: [
-                                            .init(label: mainName, value: Fmt.signedEur(r.curve[idx]), color: Color.primary),
-                                            .init(label: otherName,
-                                                  value: idx < other.curve.count ? Fmt.signedEur(other.curve[idx]) : "–",
-                                                  color: Color.secondary)
-                                        ])
-                        }
-                }
-            }
-            .chartXSelection(value: $selectedX)
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { v in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let i = v.as(Int.self) { Text(monthLabel(i)).font(.system(size: 9)) }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks { v in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let d = v.as(Double.self) { Text(Fmt.eur(d)).font(.system(size: 9)) }
-                    }
-                }
-            }
-            .chartLegend(.hidden)
-            .frame(height: 250)
+            chart
 
             VStack(alignment: .leading, spacing: 3) {
                 ForEach(evs) { e in

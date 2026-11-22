@@ -23,4 +23,8 @@ jobs:
             -project AbfindungApp.xcodeproj \
             -scheme AbfindungApp \
             -destination "platform=iOS Simulator,name=$DEST" \
-            CODE_SIGNING_ALLOWED=NO | tail -n 60
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | tail -n 25
+      - name: Show errors
+        if: failure()
+        run: |
+          grep -nE "error:|Testing failed|Failing tests|Test Case .* failed|XCTAssert" "$RUNNER_TEMP/xcodebuild.log" | cut -c1-300 | head -60 || true
