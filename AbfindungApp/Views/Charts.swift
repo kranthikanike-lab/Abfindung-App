@@ -456,10 +456,10 @@ struct RunwayBalanceChart: View {
     private func areaMarks(_ curve: [Double]) -> some ChartContent {
         ForEach(Array(curve.enumerated()), id: \.offset) { idx, v in
             AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Plus", max(v, 0)),
-                     series: .value("Bereich", "plus"), stacking: .unstacked)
+                     series: .value("Bereich", "plus"))
                 .foregroundStyle(Theme.success.opacity(0.28))
             AreaMark(x: .value("Monat", idx), yStart: .value("Null", 0), yEnd: .value("Minus", min(v, 0)),
-                     series: .value("Bereich", "minus"), stacking: .unstacked)
+                     series: .value("Bereich", "minus"))
                 .foregroundStyle(Theme.danger.opacity(0.35))
         }
     }
