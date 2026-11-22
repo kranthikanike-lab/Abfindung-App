@@ -48,13 +48,15 @@ enum Runway {
         let cashAbfBeforeTax = max(0, grossAbf - effBav - effDrv)
 
         let dynamicRuhens = sprinter
-            ? min(12, ctx.fristMonate, Int((0.45 * grossAbf / max(1, ctx.altesMonatsgehalt)).rounded(.up)))
+            ? Calculator.ruhensMonths(abfindung: grossAbf, monthly: ctx.altesMonatsgehalt,
+                                      frist: ctx.fristMonate, anteil: ctx.ruhensAnteil)
             : 0
-        let sperrzeitTrim = sprinter ? min(3, alg1TotalEligible) : 0
+        let sperrzeitTrim = sprinter ? Calculator.sperrzeitMonths(alg1Months: alg1TotalEligible) : 0
+        let tc = ctx.tax
         let algMonths = max(0, alg1TotalEligible - sperrzeitTrim)
 
-        let agTaxBase = TaxMath.totalTax(zve: ctx.agZveBasis, spl: ctx.spl, fuenftel: false, abf: 0, kinder: ctx.kinder).total
-        let agTaxFull = TaxMath.totalTax(zve: ctx.agZveBasis + taxableAbf, spl: ctx.spl, fuenftel: false, abf: 0, kinder: ctx.kinder).total
+        let agTaxBase = tc.withholding(ctx.agZveBasis).total
+        let agTaxFull = tc.withholding(ctx.agZveBasis + taxableAbf).total
         let upfrontTaxAbf = max(0, agTaxFull - agTaxBase)
         let sofortNettoAbf = max(0, cashAbfBeforeTax - upfrontTaxAbf)
 
@@ -65,9 +67,8 @@ enum Runway {
         let alg2027 = max(0, min(algMonths, rem2027 - ruhens2027))
 
         let grossSal2027 = Double(salMonthsIn2027) * ctx.altesMonatsgehalt
-        let taxPaidSal2027 = TaxMath.totalTax(
-            zve: TaxMath.employmentZve(grossSal2027, zb: ctx.zb, kinder: ctx.kinder) + ctx.partnerZveBasis,
-            spl: ctx.spl, fuenftel: false, abf: 0, kinder: ctx.kinder).total
+        let taxPaidSal2027 = tc.withholding(
+            TaxMath.employmentZve(grossSal2027, zb: ctx.zb, kinder: ctx.kinder) + ctx.partnerZveBasis).total
 
         let maxRuerupScen = max(0, Const.maxAltersvorsorge * ctx.spl
                                 - min(grossSal2027, Const.bbgRV) * 0.186
@@ -81,9 +82,9 @@ enum Runway {
 
         let zve2027 = baseZveBeforeRuerup - effRuerup
         let prog2027 = Double(alg2027) * ctx.alg1Monat
-        let finalTax2027 = TaxMath.totalTax(zve: zve2027, spl: ctx.spl, fuenftel: true, abf: taxableAbf,
-                                            kinder: ctx.kinder, prog: prog2027).total
-        let faRefundOct2028 = max(0, (taxPaidSal2027 + upfrontTaxAbf) - finalTax2027)
+        let finalTax2027 = tc.annual(zve2027, fuenftel: true, abf: taxableAbf, prog: prog2027).total
+        // Signed: negative = Nachzahlung
+        let faRefundOct2028 = (taxPaidSal2027 + upfrontTaxAbf) - finalTax2027
 
         let rem2028AfterSal = max(0, 12 - salMonthsIn2028)
         let ruhens2028 = max(0, dynamicRuhens - ruhens2027)
@@ -92,11 +93,9 @@ enum Runway {
         var faSettlementOct2029 = 0.0
         if ctx.spl == 2 || salMonthsIn2028 > 0 {
             let empZve2028 = TaxMath.employmentZve(grossSal2028, zb: ctx.zb, kinder: ctx.kinder)
-            let withheld2028 = TaxMath.totalTax(zve: empZve2028 + ctx.partnerZveBasis, spl: ctx.spl,
-                                                fuenftel: false, abf: 0, kinder: ctx.kinder).total
+            let withheld2028 = tc.withholding(empZve2028 + ctx.partnerZveBasis).total
             let zve2028 = empZve2028 - Double(ruhens2028) * ctx.gkvHoechstsatzMonat + ctx.partnerZveBasis
-            let finalTax2028 = TaxMath.totalTax(zve: zve2028, spl: ctx.spl, fuenftel: false, abf: 0,
-                                                kinder: ctx.kinder, prog: Double(alg2028) * ctx.alg1Monat).total
+            let finalTax2028 = tc.annual(zve2028, fuenftel: false, abf: 0, prog: Double(alg2028) * ctx.alg1Monat).total
             faSettlementOct2029 = withheld2028 - finalTax2028
         }
 
@@ -114,9 +113,11 @@ enum Runway {
             : (ctx.altesMonatsgehalt - TaxMath.sozAbzug(ctx.altesMonatsgehalt, zb: ctx.zb, kinder: ctx.kinder)) * 0.65
 
         var exhaustedMonth = maxM
+        // The Abfindung is always assumed to be paid in 2027 (December at the latest).
+        let payoutM = min(salMonthsTotal, 11)
 
         for m in 0..<maxM {
-            if !payoutDone && m == salMonthsTotal {
+            if !payoutDone && m == payoutM {
                 cash += sofortNettoAbf - effRuerup - upfrontSpend
                 payoutDone = true
             }

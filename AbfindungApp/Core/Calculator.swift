@@ -13,6 +13,8 @@ struct SimCtx {
     var partnerZveBasis: Double
     var zb: Double
     var kinder: Double
+    var kist: Double
+    var ruhensAnteil: Double   // fraction (0.25 ... 0.60)
     var bav: Double
     var drvRaw: Double
     var drvTaxFree: Double
@@ -23,6 +25,8 @@ struct SimCtx {
     var gkvMinMonat: Double
     var alg1Monat: Double
     var preExitGkvPflicht: Bool
+
+    var tax: TaxCtx { TaxCtx(spl: spl, kinder: kinder, kist: kist) }
 }
 
 struct OptSaving {
@@ -46,6 +50,8 @@ struct Results {
     var salMonthsStd = 0
     var salMonthsSpr = 0
     var sprinterBruttoPraemie = 0.0
+    var ruhensMonthsSprinter = 0
+    var sperrzeitMonths = 0
 
     // Optimierung
     var maxRuerup = 0.0
@@ -79,6 +85,7 @@ struct Results {
 
     // KPIs
     var netVoll = 0.0
+    /// Signed: positive = Erstattung, negative = Nachzahlung (Finanzamt, Oct. 2028).
     var erstattung = 0.0
     var netFf = 0.0
     var rateUpfront = 0.0
@@ -93,8 +100,10 @@ struct Results {
     var barBruttoTaxable = 0.0
     var barBruttoCash = 0.0
     var einbehalten = 0.0
+    var kistWithheld = 0.0
     var zveAfterAll = 0.0
     var finalAbfTax = 0.0
+    var kistFinal = 0.0
     var netGehaltBase = 0.0
     var gkvPenalty2027 = 0.0
 
@@ -111,7 +120,18 @@ struct Results {
 }
 
 enum Calculator {
-    /// Port of `berechneAlles()` from the HTML calculator.
+    /// Number of Ruhenszeit months (§ 158 SGB III): shorter of the notice period and
+    /// Abfindung × Anrechnungsanteil ÷ monthly salary, at most 12 months.
+    static func ruhensMonths(abfindung: Double, monthly: Double, frist: Int, anteil: Double) -> Int {
+        min(12, frist, Int((anteil * abfindung / max(1, monthly)).rounded(.up)))
+    }
+
+    /// Sperrzeit (12 weeks) cuts the ALG-1 entitlement by one quarter (rounded up).
+    static func sperrzeitMonths(alg1Months: Int) -> Int {
+        let total = max(0, alg1Months)
+        return min(total, Int((Double(total) / 4).rounded(.up)))
+    }
+
     static func compute(_ i: Inputs) -> Results {
         var r = Results()
 
@@ -128,8 +148,11 @@ enum Calculator {
         let isTurbo = i.isTurbo
         let turboFaktor = max(0, i.turboFaktor)
         let fristD = Double(frist)
+        let anteil = min(60, max(25, i.ruhensAnteil)) / 100
+        let tc = TaxCtx(spl: spl, kinder: kinder, kist: i.kirchensteuer)
+        let tcSingle = TaxCtx(spl: 1, kinder: kinder, kist: i.kirchensteuer)
 
-        let gkvHoechst = TaxMath.gkvHoechstsatzMonat(zb)
+        let gkvHoechst = TaxMath.gkvHoechstsatzMonat(zb, kinder: kinder)
         let gkvMin = TaxMath.gkvMindestMonat(zb, kinder: kinder)
         let alg1Monat = TaxMath.autoAlg1(monthlyGross: alt, satz: i.alg1Satz)
 
@@ -139,6 +162,7 @@ enum Calculator {
         r.kg = kinder * Const.kindergeld
         r.alg1Monat = alg1Monat
 
+        // Payout is always assumed in 2027 in this version: salary months are capped at 12.
         let salMonthsStd = min(12, preMonths + frist)
         let salMonthsSpr = preMonths
         r.salMonthsStd = salMonthsStd
@@ -151,6 +175,7 @@ enum Calculator {
         let praemieBrutto = isTurbo ? fristD * alt * turboFaktor : 0
         r.sprinterBruttoPraemie = fristD * alt * turboFaktor
         let effAbf = abfNoTurbo + praemieBrutto
+        let fullTurboAbf = abfNoTurbo + fristD * alt * turboFaktor
 
         let maxRuerup = max(0, Const.maxAltersvorsorge * spl
                             - min(bg, Const.bbgRV) * 0.186
@@ -173,7 +198,12 @@ enum Calculator {
         r.ruerup = ruerup; r.iab = iab; r.iabInvest = iabInvest
         r.totalOptVolume = bav + drvRaw + ruerup + iabInvest
 
-        let dynRuhens = min(12, frist, Int((0.45 * effAbf / max(1, alt)).rounded(.up)))
+        let dynRuhens = ruhensMonths(abfindung: effAbf, monthly: alt, frist: frist, anteil: anteil)
+        let dynRuhensSim = ruhensMonths(abfindung: fullTurboAbf, monthly: alt, frist: frist, anteil: anteil)
+        let sperrMonths = sperrzeitMonths(alg1Months: i.runwayAlg1Months)
+        r.ruhensMonthsSprinter = dynRuhensSim
+        r.sperrzeitMonths = sperrMonths
+
         let ruhensIn2027 = isTurbo ? min(dynRuhens, max(0, 12 - salMonthsSpr)) : 0
         let freeGkvGrace = (isTurbo && i.preExitGkvPflicht && ruhensIn2027 > 0) ? 1 : 0
         let payableGkv2027 = max(0, ruhensIn2027 - freeGkvGrace)
@@ -185,15 +215,15 @@ enum Calculator {
         let barNoTurbo = max(0, abfNoTurbo - bav - drvTaxFree)
         let partnerZve = i.splitting ? TaxMath.employmentZve(pGehalt, zb: zb, kinder: kinder) : 0
         let zveBasisNoTurbo = TaxMath.employmentZve(bgNoTurbo, zb: zb, kinder: kinder) + partnerZve
-        let taxNoTurbo = TaxMath.totalTax(zve: zveBasisNoTurbo - iab - ruerup, spl: spl, fuenftel: true,
-                                          abf: barNoTurbo, kinder: kinder).total
+        let taxNoTurbo = tc.annual(zveBasisNoTurbo - iab - ruerup, fuenftel: true, abf: barNoTurbo).total
         let wealthNoTurbo = (bgNoTurbo - sozNoTurbo) + max(0, abfNoTurbo - bav - drvRaw) - taxNoTurbo
 
         // Active scenario
         let sozRegular = TaxMath.sozAbzug(bg, zb: zb, kinder: kinder)
         let zveBasisActive = TaxMath.employmentZve(bg, zb: zb, kinder: kinder) - gkvPenalty2027 + partnerZve
         let zveAfterAll = zveBasisActive - iab - ruerup
-        let T3 = TaxMath.totalTax(zve: zveAfterAll, spl: spl, fuenftel: true, abf: barTaxable, kinder: kinder).total
+        let T3res = tc.annual(zveAfterAll, fuenftel: true, abf: barTaxable)
+        let T3 = T3res.total
 
         r.ruerupSweetSpot = jsRound(min(maxRuerup, max(0, zveBasisActive - iab)))
         let remBeforeIab = max(0, zveBasisActive - ruerup)
@@ -201,33 +231,30 @@ enum Calculator {
         r.iabSweetAbzug = remBeforeIab
 
         // Sprinter simulation (independent of toggle)
-        let ruhensSim = min(dynRuhens, max(0, 12 - salMonthsSpr))
+        let ruhensSim = min(dynRuhensSim, max(0, 12 - salMonthsSpr))
         let graceSim = (i.preExitGkvPflicht && ruhensSim > 0) ? 1 : 0
         let gkvTurboSim = Double(max(0, ruhensSim - graceSim)) * gkvHoechst
         let zveBasisTurboSim = TaxMath.employmentZve(bgTurbo, zb: zb, kinder: kinder) - gkvTurboSim + partnerZve
         let zveAfterAllTurboSim = zveBasisTurboSim - iab - ruerup
 
-        let taxSalNoTurbo = TaxMath.totalTax(zve: TaxMath.employmentZve(bgNoTurbo, zb: zb, kinder: kinder) + partnerZve,
-                                             spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
-        let taxSalTurbo = TaxMath.totalTax(zve: TaxMath.employmentZve(bgTurbo, zb: zb, kinder: kinder) + partnerZve,
-                                           spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
+        let taxSalNoTurbo = tc.withholding(TaxMath.employmentZve(bgNoTurbo, zb: zb, kinder: kinder) + partnerZve).total
+        let taxSalTurbo = tc.withholding(TaxMath.employmentZve(bgTurbo, zb: zb, kinder: kinder) + partnerZve).total
         let netSalNoTurbo = bgNoTurbo - sozNoTurbo - taxSalNoTurbo
         let netSalTurbo = bgTurbo - TaxMath.sozAbzug(bgTurbo, zb: zb, kinder: kinder) - taxSalTurbo
         let lostNetSalary = max(0, netSalNoTurbo - netSalTurbo)
 
-        let taxTurboBase = TaxMath.totalTax(zve: zveAfterAllTurboSim, spl: spl, fuenftel: true, abf: barNoTurbo, kinder: kinder).total
+        let taxTurboBase = tc.annual(zveAfterAllTurboSim, fuenftel: true, abf: barNoTurbo).total
         let wealthTurboBase = (bgTurbo - TaxMath.sozAbzug(bgTurbo, zb: zb, kinder: kinder))
             + max(0, abfNoTurbo - bav - drvRaw) - taxTurboBase
         let pureFuenftel = max(0, (wealthTurboBase - wealthNoTurbo) + lostNetSalary)
 
-        let fullTurboAbf = abfNoTurbo + fristD * alt * turboFaktor
         let barFullTurbo = max(0, fullTurboAbf - bav - drvTaxFree)
-        let taxTurboFull = TaxMath.totalTax(zve: zveAfterAllTurboSim, spl: spl, fuenftel: true, abf: barFullTurbo, kinder: kinder).total
+        let taxTurboFull = tc.annual(zveAfterAllTurboSim, fuenftel: true, abf: barFullTurbo).total
         let extraTaxOnPremium = max(0, taxTurboFull - taxTurboBase)
         let isolatedNettoPraemie = max(0, (fullTurboAbf - abfNoTurbo) - extraTaxOnPremium)
 
         let rvSim = fristD * min(alt, Const.bbgRVMonat) * 0.186
-        let alg1Sim = i.includeAlg1Loss ? Double(min(3, frist)) * alg1Monat : 0
+        let alg1Sim = i.includeAlg1Loss ? Double(sperrMonths) * alg1Monat : 0
         let gains = isolatedNettoPraemie + pureFuenftel
         let losses = lostNetSalary + gkvTurboSim + rvSim + alg1Sim
         r.isolatedNettoPraemie = isolatedNettoPraemie
@@ -242,52 +269,52 @@ enum Calculator {
 
         // Arbeitgeber-Lohnsteuer-Einbehalt & Finanzamt
         let agZve = TaxMath.employmentZve(agFiktiv, zb: zb, kinder: kinder) + partnerZve
-        let taxG = TaxMath.totalTax(zve: agZve, spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
-        let taxVoll = TaxMath.totalTax(zve: agZve + barTaxable, spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
-        let einbehalten = max(0, taxVoll - taxG)
+        let whG = tc.withholding(agZve)
+        let whVoll = tc.withholding(agZve + barTaxable)
+        let einbehalten = max(0, whVoll.total - whG.total)
+        let kistWithheld = max(0, whVoll.kist - whG.kist)
         let netVoll = max(0, barCash - einbehalten)
         r.rateUpfront = barTaxable > 0 ? einbehalten / barTaxable * 100 : 0
 
-        let taxNoBavDrv = TaxMath.totalTax(zve: agZve + effAbf, spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
-        let upfrontSavedBavDrv = max(0, taxNoBavDrv - taxVoll)
+        let taxNoBavDrv = tc.withholding(agZve + effAbf).total
+        let upfrontSavedBavDrv = max(0, taxNoBavDrv - whVoll.total)
         let upfrontSavedBav = (bav + drvTaxFree) > 0 ? upfrontSavedBavDrv * (bav / (bav + drvTaxFree)) : 0
 
-        let taxPaidBasePayroll = TaxMath.totalTax(zve: TaxMath.employmentZve(bg, zb: zb, kinder: kinder) + partnerZve,
-                                                  spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
+        let taxPaidBasePayroll = tc.withholding(TaxMath.employmentZve(bg, zb: zb, kinder: kinder) + partnerZve).total
         let netGehaltBase = bg - sozRegular - taxPaidBasePayroll
 
         let totalPaidYear = taxPaidBasePayroll + einbehalten
-        let T0 = TaxMath.totalTax(zve: zveBasisActive, spl: spl, fuenftel: true, abf: effAbf, kinder: kinder).total
-        let T1 = TaxMath.totalTax(zve: zveBasisActive, spl: spl, fuenftel: true, abf: barTaxable, kinder: kinder).total
-        let erst = max(0, totalPaidYear - T3)
+        let T0 = tc.annual(zveBasisActive, fuenftel: true, abf: effAbf).total
+        let T1 = tc.annual(zveBasisActive, fuenftel: true, abf: barTaxable).total
+        // Signed: negative means Nachzahlung.
+        let erst = totalPaidYear - T3
 
         let bavAndDrvSavings = max(0, T0 - T1)
         let drvOnlyBase = max(0, effAbf - drvTaxFree)
-        let tDrvOnly = TaxMath.totalTax(zve: zveBasisActive, spl: spl, fuenftel: true, abf: drvOnlyBase, kinder: kinder).total
+        let tDrvOnly = tc.annual(zveBasisActive, fuenftel: true, abf: drvOnlyBase).total
         let bavOnlyBase = max(0, effAbf - bav)
-        let tBavOnly = TaxMath.totalTax(zve: zveBasisActive, spl: spl, fuenftel: true, abf: bavOnlyBase, kinder: kinder).total
+        let tBavOnly = tc.annual(zveBasisActive, fuenftel: true, abf: bavOnlyBase).total
         let sBav = max(0, T0 - tBavOnly)
         let sDrv = max(0, T0 - tDrvOnly)
         let drvTotalErsparnis = (sBav + sDrv) > 0 ? bavAndDrvSavings * (sDrv / (sBav + sDrv)) : 0
 
-        let taxWithoutDrvTaxable = TaxMath.totalTax(zve: zveAfterAll, spl: spl, fuenftel: true,
-                                                    abf: max(0, barTaxable - drvTaxable), kinder: kinder).total
-        let taxWithoutDrvTaxableNoFf = TaxMath.totalTax(zve: zveAfterAll, spl: spl, fuenftel: false,
-                                                        abf: max(0, barTaxable - drvTaxable), kinder: kinder).total
-        let taxWithDrvTaxableNoFf = TaxMath.totalTax(zve: zveAfterAll, spl: spl, fuenftel: false, abf: barTaxable, kinder: kinder).total
+        let taxWithoutDrvTaxable = tc.annual(zveAfterAll, fuenftel: true, abf: max(0, barTaxable - drvTaxable)).total
+        let taxWithoutDrvTaxableNoFf = tc.annual(zveAfterAll, fuenftel: false, abf: max(0, barTaxable - drvTaxable)).total
+        let taxWithDrvTaxableNoFf = tc.annual(zveAfterAll, fuenftel: false, abf: barTaxable).total
         let drvFuenftelRefund = drvTaxable > 0
             ? max(0, (taxWithDrvTaxableNoFf - taxWithoutDrvTaxableNoFf) - (T3 - taxWithoutDrvTaxable))
             : 0
 
         let combinedOptSavings = max(0, T1 - T3)
-        let standaloneRuerup = max(0, T1 - TaxMath.totalTax(zve: zveBasisActive - ruerup, spl: spl, fuenftel: true, abf: barTaxable, kinder: kinder).total)
-        let standaloneIab = max(0, T1 - TaxMath.totalTax(zve: zveBasisActive - iab, spl: spl, fuenftel: true, abf: barTaxable, kinder: kinder).total)
+        let standaloneRuerup = max(0, T1 - tc.annual(zveBasisActive - ruerup, fuenftel: true, abf: barTaxable).total)
+        let standaloneIab = max(0, T1 - tc.annual(zveBasisActive - iab, fuenftel: true, abf: barTaxable).total)
         let standaloneSum = standaloneRuerup + standaloneIab
         let ruerupErsparnis = standaloneSum > 0 ? combinedOptSavings * (standaloneRuerup / standaloneSum) : 0
         let iabErsparnis = standaloneSum > 0 ? combinedOptSavings * (standaloneIab / standaloneSum) : 0
 
-        let taxBaseAfterAll = TaxMath.totalTax(zve: zveAfterAll, spl: spl, fuenftel: false, abf: 0, kinder: kinder).total
-        let finalAbfTax = max(0, T3 - taxBaseAfterAll)
+        let baseAfterAll = tc.annual(zveAfterAll, fuenftel: false, abf: 0)
+        let finalAbfTax = max(0, T3 - baseAfterAll.total)
+        let kistFinal = max(0, T3res.kist - baseAfterAll.kist)
         let netFf = max(0, barCash - finalAbfTax)
         r.rateFinal = barTaxable > 0 ? finalAbfTax / barTaxable * 100 : 0
 
@@ -298,11 +325,13 @@ enum Calculator {
 
         if i.splitting {
             let userZve = TaxMath.employmentZve(bg, zb: zb, kinder: kinder) - gkvPenalty2027 - iab - ruerup
-            let maxPartner = TaxMath.maxPartnerGrossForSplitting(userZve: userZve, taxableAbf: barTaxable, kinder: kinder, zb: zb)
-            // The HTML subtracts ruerup/2 from each partner for the single-assessment comparison; kept identical.
+            let maxPartner = TaxMath.maxPartnerGrossForSplitting(userZve: userZve, taxableAbf: barTaxable,
+                                                                 kinder: kinder, zb: zb, kist: i.kirchensteuer)
+            // Single assessment comparison: Rürup is split half/half between the partners.
             let userZveHalf = TaxMath.employmentZve(bg, zb: zb, kinder: kinder) - gkvPenalty2027 - iab - ruerup / 2
-            let vSingle = TaxMath.totalTax(zve: userZveHalf, spl: 1, fuenftel: true, abf: barTaxable, kinder: kinder).total
-                + TaxMath.totalTax(zve: TaxMath.employmentZve(pGehalt, zb: zb, kinder: kinder) - ruerup / 2, spl: 1, fuenftel: false, abf: 0, kinder: kinder).total
+            let vSingle = tcSingle.annual(userZveHalf, fuenftel: true, abf: barTaxable).total
+                + tcSingle.annual(TaxMath.employmentZve(pGehalt, zb: zb, kinder: kinder) - ruerup / 2,
+                                  fuenftel: false, abf: 0).total
             r.splitting = SplittingInfo(maxPartnerGross: maxPartner, advantage: vSingle - T3)
         }
 
@@ -320,15 +349,18 @@ enum Calculator {
         r.barBruttoTaxable = barTaxable
         r.barBruttoCash = barCash
         r.einbehalten = einbehalten
+        r.kistWithheld = kistWithheld
         r.zveAfterAll = zveAfterAll
         r.finalAbfTax = finalAbfTax
+        r.kistFinal = kistFinal
         r.netGehaltBase = netGehaltBase
         r.drvFuenftelRefund2028 = drvFuenftelRefund
-        r.baseFuenftelRefund = max(0, erst - drvFuenftelRefund - ruerupErsparnis - iabErsparnis)
+        r.baseFuenftelRefund = erst - drvFuenftelRefund - ruerupErsparnis - iabErsparnis
 
         let ctx = SimCtx(altesMonatsgehalt: alt, preMonths: preMonths, fristMonate: frist, abfNoTurbo: abfNoTurbo,
                          turboFaktor: turboFaktor, agZveBasis: agZve, spl: spl, pGehalt: pGehalt,
-                         partnerZveBasis: partnerZve, zb: zb, kinder: kinder, bav: bav, drvRaw: drvRaw,
+                         partnerZveBasis: partnerZve, zb: zb, kinder: kinder, kist: i.kirchensteuer,
+                         ruhensAnteil: anteil, bav: bav, drvRaw: drvRaw,
                          drvTaxFree: drvTaxFree, ruerup: ruerup, iab: iab, iabInvest: iabInvest,
                          gkvHoechstsatzMonat: gkvHoechst, gkvMinMonat: gkvMin, alg1Monat: alg1Monat,
                          preExitGkvPflicht: i.preExitGkvPflicht)

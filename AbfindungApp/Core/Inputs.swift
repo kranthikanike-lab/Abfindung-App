@@ -21,9 +21,11 @@ struct Inputs: Codable, Equatable {
     var bruttoAbfindung = 150_000.0
     var neuesGehalt = 0.0
     var agFiktivGehalt = 84_000.0
-    var zusatzbeitrag = 2.5
+    var zusatzbeitrag = 2.9
     var preExitGkvPflicht = true
     var kinder = 0.5
+    /// Kirchensteuersatz as fraction: 0 (keine), 0.08 (BY, BW), 0.09 (übrige Länder).
+    var kirchensteuer = 0.0
     var splitting = false
     var partnerGehalt = 45_000.0
 
@@ -32,6 +34,8 @@ struct Inputs: Codable, Equatable {
     var turboFaktor = 1.5
     var alg1Satz = 0.67
     var includeAlg1Loss = false
+    /// Anrechnungsanteil der Abfindung für die Ruhenszeit (§ 158 SGB III: 25–60 %). 60 % = vorsichtigster Wert.
+    var ruhensAnteil = 60.0
 
     // B. Steuer-Optimierung
     var optEnabled = false

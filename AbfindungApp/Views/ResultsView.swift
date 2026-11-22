@@ -9,8 +9,10 @@ struct ResultsView: View {
             VStack(spacing: 14) {
                 KPIGrid {
                     KPITile(label: "Sofort-Netto Abfindung (2027)", value: Fmt.eur(r.netVoll), sub: "Nach AG-Lohnsteuer-Einbehalt")
-                    KPITile(label: "Erstattung Finanzamt (Okt. 2028)", value: "+ " + Fmt.eur(r.erstattung),
-                            sub: "Durch Fünftelregelung & Steuerhebel", color: Theme.success)
+                    KPITile(label: r.erstattung >= 0 ? "Erstattung Finanzamt (Okt. 2028)" : "Nachzahlung Finanzamt (Okt. 2028)",
+                            value: Fmt.signedEur(r.erstattung),
+                            sub: r.erstattung >= 0 ? "Durch Fünftelregelung & Steuerhebel" : "Steuer liegt über dem Einbehalt",
+                            color: r.erstattung >= 0 ? Theme.success : Theme.danger)
                     KPITile(label: "Optimal-Netto Abfindung", value: Fmt.eur(r.netFf),
                             sub: "Effektiver Steuersatz: \(Fmt.pct(r.rateFinal))", color: Theme.accent)
                     KPITile(label: "Konto-Cash Ende 2028 (Gesamt)", value: Fmt.eur(r.liq28),
@@ -30,8 +32,11 @@ struct ResultsView: View {
                     TableRow(label: "− bAV-Direktumwandlung (§ 3 Nr. 63)", value: "– " + Fmt.eur(r.bav), note: "100 % steuerfrei (sofortige Lohnsteuer-Ersparnis)")
                     TableRow(label: "− AG-Direktzahlung DRV (V0210)", value: "– " + Fmt.eur(r.drvRaw), note: "50 % steuerfrei (§ 3 Nr. 28 EStG)")
                     TableRow(label: "= Steuerpflichtige Bar-Abfindung", value: Fmt.eur(r.barBruttoTaxable), note: "Bemessungsgrundlage Lohnsteuer")
-                    TableRow(label: "− Einbehaltene Lohnsteuer + Soli (\(Fmt.pct(r.rateUpfront)))", value: "– " + Fmt.eur(r.einbehalten),
+                    TableRow(label: "− Einbehaltene Lohnsteuer + Soli\(model.inputs.kirchensteuer > 0 ? " + KiSt" : "") (\(Fmt.pct(r.rateUpfront)))", value: "– " + Fmt.eur(r.einbehalten),
                              note: "Ohne Fünftelregelung (Wachstumschancengesetz)", color: Theme.danger)
+                    if r.kistWithheld > 0 {
+                        TableRow(label: "   davon Kirchensteuer", value: "– " + Fmt.eur(r.kistWithheld))
+                    }
                     TableRow(label: "= Sofort-Netto Auszahlung", value: Fmt.eur(r.netVoll),
                              note: model.inputs.isTurbo ? "Inkl. Sprinter-Prämie" : nil, bold: true)
                 }
@@ -42,8 +47,13 @@ struct ResultsView: View {
                     TableRow(label: "Steuerpflichtige Abfindung (inkl. 50% DRV V0210)", value: Fmt.eur(r.barBruttoTaxable), note: "Bemessung § 34 Abs. 1 EStG")
                     TableRow(label: "Endgültige Steuer auf Abfindung (\(Fmt.pct(r.rateFinal)))", value: "– " + Fmt.eur(r.finalAbfTax),
                              note: "Nach Fünftelregelung & R 34.2 EStR", color: Theme.danger)
-                    TableRow(label: "Erstattung durch Finanzamt (Okt. 2028)", value: "+ " + Fmt.eur(r.erstattung),
-                             note: "Differenz aus Vorauszahlung und Endsteuer", color: Theme.success)
+                    if model.inputs.kirchensteuer > 0 {
+                        TableRow(label: "   davon Kirchensteuer", value: "– " + Fmt.eur(r.kistFinal))
+                    }
+                    TableRow(label: r.erstattung >= 0 ? "Erstattung durch Finanzamt (Okt. 2028)" : "Nachzahlung ans Finanzamt (Okt. 2028)",
+                             value: Fmt.signedEur(r.erstattung),
+                             note: "Differenz aus Vorauszahlung und Endsteuer",
+                             color: r.erstattung >= 0 ? Theme.success : Theme.danger)
                     TableRow(label: "= Optimal-Netto Abfindung (nach FA)", value: Fmt.eur(r.netFf), note: "Realer Netto-Ertrag der Abfindung", bold: true)
                 }
 
@@ -55,7 +65,9 @@ struct ResultsView: View {
                     TableRow(label: "− PV-IAB Investitions-Abfluss (100% Kaufpreis)", value: "– " + Fmt.eur(r.iabInvest), note: "Hinweis: IAB selbst kostet 2027 0 € Cash (Kauf erst bis 2030)")
                     TableRow(label: "− Freiwillige GKV/PV in Sprinter-Lücke", value: "– " + Fmt.eur(r.gkvPenalty2027), note: "Selbstzahler-Beiträge (§ 10 EStG absetzbar)")
                     TableRow(label: "= Konto-Stand am 31.12.2027", value: Fmt.eur(r.liq27), note: "Vor FA-Erstattung")
-                    TableRow(label: "+ Finanzamt-Erstattung (Okt. 2028)", value: "+ " + Fmt.eur(r.erstattung), note: "Steuerbescheid 2027", color: Theme.success)
+                    TableRow(label: r.erstattung >= 0 ? "+ Finanzamt-Erstattung (Okt. 2028)" : "− Finanzamt-Nachzahlung (Okt. 2028)",
+                             value: Fmt.signedEur(r.erstattung), note: "Steuerbescheid 2027",
+                             color: r.erstattung >= 0 ? Theme.success : Theme.danger)
                     TableRow(label: "= Konto-Stand Ende 2028 (Freie Liquidität)", value: Fmt.eur(r.liq28),
                              note: "Ohne gebundenes bAV/DRV/Rürup/PV-Vermögen", bold: true)
                 }

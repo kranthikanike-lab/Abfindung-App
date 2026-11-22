@@ -51,7 +51,8 @@ struct StickyKPIBar: View {
         HStack {
             item("Sofort-Netto", Fmt.eur(r.netVoll), .primary)
             Divider().frame(height: 28)
-            item("FA Okt. 2028", "+ " + Fmt.eur(r.erstattung), Theme.success)
+            item(r.erstattung >= 0 ? "FA Okt. 2028" : "Nachzahlung FA", Fmt.signedEur(r.erstattung),
+                 r.erstattung >= 0 ? Theme.success : Theme.danger)
             Divider().frame(height: 28)
             item("Optimal-Netto", Fmt.eur(r.netFf), Theme.accent)
         }
@@ -77,6 +78,14 @@ struct LegalSheet: View {
                         Text(item.0).font(.subheadline.weight(.semibold))
                         Text(item.1).font(.footnote).foregroundStyle(.secondary)
                     }.padding(.vertical, 2)
+                }
+                Section("Annahmen & Stand") {
+                    ForEach(Info.assumptions, id: \.0) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.0).font(.subheadline.weight(.semibold))
+                            Text(item.1).font(.footnote).foregroundStyle(.secondary)
+                        }.padding(.vertical, 2)
+                    }
                 }
                 Section {
                     Text("Unverbindliche Modellrechnung ohne Gewähr. Ersetzt keine Steuer- oder Rechtsberatung.")
@@ -104,10 +113,10 @@ struct DrvDeficitSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Berechnen Sie exakt die Einmalzahlung, die nötig ist, um den lebenslangen Rentenabschlag (z. B. 14,4 % bei 4 Jahren Frührente) komplett auszugleichen.")
+                    Text("Berechnen Sie die Einmalzahlung, die nötig ist, um den lebenslangen Rentenabschlag (0,3 % je Monat, höchstens 14,4 % bei 4 Jahren Frührente) auszugleichen. Maßgeblich sind die Rentenpunkte, die Sie bei Rentenbeginn voraussichtlich haben.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                Section("Bisherige Rentenpunkte (laut Rentenauskunft)") {
+                Section("Rentenpunkte bei Rentenbeginn (Prognose laut Rentenauskunft)") {
                     TextField("45", value: $points, format: .number).keyboardType(.decimalPad)
                 }
                 Section("Geplanter Rentenabschlag") {
@@ -116,7 +125,6 @@ struct DrvDeficitSheet: View {
                         Text("2 Jahre (7,2 %)").tag(0.072)
                         Text("3 Jahre (10,8 %)").tag(0.108)
                         Text("4 Jahre (14,4 %)").tag(0.144)
-                        Text("5 Jahre (18,0 %)").tag(0.18)
                     }.pickerStyle(.menu)
                 }
                 Section("Einzahlungsjahr (Kaufpreis pro Punkt)") {

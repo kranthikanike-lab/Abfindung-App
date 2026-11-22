@@ -36,13 +36,15 @@ enum Crossover {
         let cashAbfBeforeTax = max(0, grossAbf - effBav - effDrv)
 
         let dynamicRuhens = sprinter
-            ? min(12, ctx.fristMonate, Int((0.45 * grossAbf / max(1, ctx.altesMonatsgehalt)).rounded(.up)))
+            ? Calculator.ruhensMonths(abfindung: grossAbf, monthly: ctx.altesMonatsgehalt,
+                                      frist: ctx.fristMonate, anteil: ctx.ruhensAnteil)
             : 0
-        let sperrzeitTrim = sprinter ? min(3, alg1TotalEligible) : 0
+        let sperrzeitTrim = sprinter ? Calculator.sperrzeitMonths(alg1Months: alg1TotalEligible) : 0
+        let tc = ctx.tax
         let algMonths = max(0, alg1TotalEligible - sperrzeitTrim)
 
-        let agTaxBase = TaxMath.totalTax(zve: ctx.agZveBasis, spl: ctx.spl, fuenftel: false, abf: 0, kinder: ctx.kinder).total
-        let agTaxFull = TaxMath.totalTax(zve: ctx.agZveBasis + taxableAbf, spl: ctx.spl, fuenftel: false, abf: 0, kinder: ctx.kinder).total
+        let agTaxBase = tc.withholding(ctx.agZveBasis).total
+        let agTaxFull = tc.withholding(ctx.agZveBasis + taxableAbf).total
         let upfrontTaxAbf = max(0, agTaxFull - agTaxBase)
         let sofortNettoAbf = max(0, cashAbfBeforeTax - upfrontTaxAbf)
 
@@ -55,9 +57,8 @@ enum Crossover {
         let alg2027 = max(0, min(algMonths, gapMonths2027 - ruhens2027))
 
         let gross2027 = Double(oldSalMonths2027) * ctx.altesMonatsgehalt + Double(newSalMonths2027) * newMonthlyGross
-        let taxPaid2027 = TaxMath.totalTax(
-            zve: TaxMath.employmentZve(gross2027, zb: ctx.zb, kinder: ctx.kinder) + ctx.partnerZveBasis,
-            spl: ctx.spl, fuenftel: false, abf: 0, kinder: ctx.kinder).total
+        let taxPaid2027 = tc.withholding(
+            TaxMath.employmentZve(gross2027, zb: ctx.zb, kinder: ctx.kinder) + ctx.partnerZveBasis).total
 
         let maxRuerupScen = max(0, Const.maxAltersvorsorge * ctx.spl
                                 - min(gross2027, Const.bbgRV) * 0.186
@@ -68,16 +69,16 @@ enum Crossover {
         if i.runwayCapRuerupSweetSpot { effRuerup = min(effRuerup, max(0, baseZveBeforeRuerup)) }
 
         let zve2027 = baseZveBeforeRuerup - effRuerup
-        let finalTax2027 = TaxMath.totalTax(zve: zve2027, spl: ctx.spl, fuenftel: true, abf: taxableAbf,
-                                            kinder: ctx.kinder, prog: Double(alg2027) * ctx.alg1Monat).total
-        let faRefundOct2028 = max(0, (taxPaid2027 + upfrontTaxAbf) - finalTax2027)
+        let finalTax2027 = tc.annual(zve2027, fuenftel: true, abf: taxableAbf, prog: Double(alg2027) * ctx.alg1Monat).total
+        // Signed: negative = Nachzahlung
+        let faRefundOct2028 = (taxPaid2027 + upfrontTaxAbf) - finalTax2027
 
         func monthlyNet(_ monthlyBrutto: Double) -> Double {
             if monthlyBrutto <= 0 { return 0 }
             let ann = monthlyBrutto * 12
             let soz = TaxMath.sozAbzug(ann, zb: ctx.zb, kinder: ctx.kinder)
-            let tax = TaxMath.totalTax(zve: TaxMath.employmentZve(ann, zb: ctx.zb, kinder: ctx.kinder),
-                                       spl: 1, fuenftel: false, abf: 0, kinder: ctx.kinder).total
+            let tax = TaxCtx(spl: 1, kinder: ctx.kinder, kist: ctx.kist)
+                .withholding(TaxMath.employmentZve(ann, zb: ctx.zb, kinder: ctx.kinder)).total
             return (ann - soz - tax) / 12
         }
         let baseOldNet = monthlyNet(ctx.altesMonatsgehalt)
@@ -85,6 +86,8 @@ enum Crossover {
 
         let oct2028Idx = 21
         let maxM = 360
+        // The Abfindung is always assumed to be paid in 2027 (December at the latest).
+        let payoutM = min(exitM, 11)
         var advantage = 0.0
         var payoutDone = false, ref28Done = false
         var cushionAtJobStart = 0.0
@@ -92,7 +95,7 @@ enum Crossover {
         var series: [Double] = []
 
         for m in 0..<maxM {
-            if !payoutDone && m == exitM {
+            if !payoutDone && m == payoutM {
                 advantage += sofortNettoAbf - effRuerup - upfrontSpend
                 payoutDone = true
             }

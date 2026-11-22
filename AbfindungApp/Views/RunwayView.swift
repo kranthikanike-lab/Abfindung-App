@@ -48,7 +48,7 @@ struct RunwayView: View {
                                 value: "\(delta >= 0 ? "+ " : "− ")\(abs(delta)) Mon.",
                                 sub: delta >= 0 ? "Sprinter hält länger durch" : "Standard hält länger durch",
                                 color: delta >= 0 ? Theme.success : Theme.warning)
-                        KPITile(label: "Okt. 2028 FA-Erstattung (Sprinter)", value: "+ " + Fmt.eur(spr.faRefundOct2028),
+                        KPITile(label: "Okt. 2028 FA-Erstattung (Sprinter)", value: Fmt.signedEur(spr.faRefundOct2028),
                                 sub: spr.bridgeDeficitMax > 0
                                 ? "Brücke ab \(monthLabel(spr.firstDeficitM ?? 0)): \(Fmt.eur(spr.bridgeDeficitMax))"
                                 : "Zwischenfinanzierung: Keine", color: Theme.accent)

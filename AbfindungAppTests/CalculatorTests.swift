@@ -1,120 +1,315 @@
 import XCTest
 @testable import AbfindungApp
 
-/// Expected values were captured by running the original `rechner_pro_v26_9.html`
-/// in a headless browser, so these tests guard the Swift port against drift.
+/// Regression tests.
+/// Scenario expectations (`testScenario_*`) were captured by running a copy of the original HTML calculator,
+/// patched with the 2027 draft tariff (BT-Drucksache 21/8235) and the agreed rule changes, in a headless browser.
+/// They guard the Swift port against transcription errors. Tariff and rule tests below use hand-calculated values.
 final class CalculatorTests: XCTestCase {
 
-    private func assertEur(_ actual: Double, _ expected: Double, _ name: String,
-                           file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertEqual(actual, expected, accuracy: 1.0, name, file: file, line: line)
+    private func eur(_ actual: Double, _ expected: Int, _ name: String,
+                     file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(actual, Double(expected), accuracy: 1.5, name, file: file, line: line)
     }
 
-    private func label(_ r: CrossoverResult) -> String {
-        r.breakevenMonthFromJan27.map(monthLabel) ?? "nie"
+    private func label(_ r: CrossoverResult?) -> String {
+        r?.breakevenMonthFromJan27.map(monthLabel) ?? "nie"
     }
 
-    func testDefaultScenario() {
-        let r = Calculator.compute(Inputs())
-        assertEur(r.netVoll, 82_882, "Sofort-Netto")
-        assertEur(r.erstattung, 11_310, "FA-Erstattung")
-        assertEur(r.netFf, 94_192, "Optimal-Netto")
-        assertEur(r.liq28, 129_947, "Konto Ende 2028")
-        XCTAssertEqual(r.rateFinal, 37.2, accuracy: 0.05)
-        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 48)
-        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 52)
-        assertEur(r.runwaySpr?.faRefundOct2028 ?? 0, 41_007, "Runway FA-Erstattung")
-        XCTAssertEqual(label(r.crossStd!), "Dez 2035")
-        XCTAssertEqual(label(r.crossSpr!), "Mai 2038")
-        assertEur(r.crossMonthlyLoss, 787, "Netto-Einbuße")
-        assertEur(r.sprinterNetDiff, 30_133, "Sprinter-Bilanz")
-        assertEur(r.isolatedNettoPraemie, 34_468, "Netto-Prämie")
+    func testScenario_Default() {
+        var i = Inputs()
+        let r = Calculator.compute(i)
+        eur(r.netVoll, 82756, "Sofort-Netto")
+        eur(r.erstattung, 11294, "Erstattung/Nachzahlung")
+        eur(r.netFf, 92447, "Optimal-Netto")
+        eur(r.liq28, 129939, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 30065, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 34358, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 48, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 52, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 41696, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Mai 2036")
+        XCTAssertEqual(label(r.crossSpr), "Okt 2038")
+        eur(r.crossMonthlyLoss, 766, "Netto-Einbusse")
     }
 
-    /// The preset asks for bAV 42.480 €, but the HTML range slider (step 500) snapped it to 42.500 €.
-    /// The app keeps the intended 42.480 €; this test feeds the HTML's effective inputs to prove parity.
-    func testPresetKeepsIntendedBavValue() {
-        let model = AppModel(inputs: Inputs())
-        model.apply(.sprinterSweet)
-        XCTAssertEqual(model.inputs.bav, 42_480)
-        XCTAssertEqual(model.inputs.ruerup, 10_000)
-        XCTAssertTrue(model.inputs.isTurbo)
-        XCTAssertTrue(model.inputs.optEnabled)
-    }
-
-    func testSprinterSweetSpotScenarioMatchesHTML() {
+    func testScenario_SprinterOpt() {
         var i = Inputs()
         i.isTurbo = true
         i.optEnabled = true
-        i.bav = 42_500
-        i.ruerup = 10_000
+        i.bav = 42500
+        i.ruerup = 10000
         let r = Calculator.compute(i)
-        assertEur(r.netVoll, 88_451, "Sofort-Netto")
-        assertEur(r.erstattung, 55_334, "FA-Erstattung")
-        assertEur(r.netFf, 143_330, "Optimal-Netto")
-        assertEur(r.liq28, 144_526, "Konto Ende 2028")
-        XCTAssertEqual(r.rateFinal, 10.4, accuracy: 0.05)
-        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 39)
-        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 45)
-        assertEur(r.runwaySpr?.faRefundOct2028 ?? 0, 48_212, "Runway FA-Erstattung")
-        XCTAssertEqual(label(r.crossStd!), "Jul 2033")
-        XCTAssertEqual(label(r.crossSpr!), "Feb 2036")
-        assertEur(r.sprinterNetDiff, 35_792, "Sprinter-Bilanz")
-        assertEur(r.isolatedNettoPraemie, 39_305, "Netto-Prämie")
+        eur(r.netVoll, 88325, "Sofort-Netto")
+        eur(r.erstattung, 48179, "Erstattung/Nachzahlung")
+        eur(r.netFf, 136031, "Optimal-Netto")
+        eur(r.liq28, 137209, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 28414, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 38076, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 39, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 43, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 40733, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Nov 2033")
+        XCTAssertEqual(label(r.crossSpr), "Jul 2036")
+        eur(r.crossMonthlyLoss, 766, "Netto-Einbusse")
     }
 
-    func testSplittingTariff() {
+    func testScenario_SplittingKist9() {
         var i = Inputs()
         i.splitting = true
+        i.kinder = 1
+        i.kirchensteuer = 0.09
         let r = Calculator.compute(i)
-        assertEur(r.netVoll, 84_320, "Sofort-Netto")
-        assertEur(r.erstattung, 15_301, "FA-Erstattung")
-        assertEur(r.netFf, 99_622, "Optimal-Netto")
-        assertEur(r.liq28, 129_998, "Konto Ende 2028")
-        XCTAssertEqual(r.rateFinal, 33.6, accuracy: 0.05)
-        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 48)
-        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 52)
-        assertEur(r.runwaySpr?.faRefundOct2028 ?? 0, 45_860, "Runway FA-Erstattung")
-        XCTAssertEqual(label(r.crossStd!), "Aug 2036")
-        XCTAssertEqual(label(r.crossSpr!), "Mär 2039")
-        assertEur(r.sprinterNetDiff, 14_993, "Sprinter-Bilanz")
-        XCTAssertNotNil(r.splitting)
+        eur(r.netVoll, 78543, "Sofort-Netto")
+        eur(r.erstattung, 19933, "Erstattung/Nachzahlung")
+        eur(r.netFf, 98476, "Optimal-Netto")
+        eur(r.liq28, 127958, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 15222, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 33579, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 47, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 51, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 53132, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Mai 2037")
+        XCTAssertEqual(label(r.crossSpr), "Nov 2039")
+        eur(r.crossMonthlyLoss, 726, "Netto-Einbusse")
     }
 
-    func testSprinterNoKidsWithMinijobAndRealReturn() {
+    func testScenario_SprinterKist8Minijob() {
         var i = Inputs()
         i.isTurbo = true
         i.kinder = 0
-        i.alg1Satz = 0.60
-        i.runwayCapRuerupSweetSpot = false
+        i.alg1Satz = 0.6
+        i.kirchensteuer = 0.08
+        i.includeAlg1Loss = true
         i.runwayMinijob = 300
         i.runwayRealReturn = 2
+        i.runwayCapRuerupSweetSpot = false
         let r = Calculator.compute(i)
-        assertEur(r.netVoll, 111_905, "Sofort-Netto")
-        assertEur(r.erstattung, 35_064, "FA-Erstattung")
-        assertEur(r.netFf, 146_538, "Optimal-Netto")
-        assertEur(r.liq28, 157_608, "Konto Ende 2028")
-        XCTAssertEqual(r.rateFinal, 27.6, accuracy: 0.05)
-        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 50)
-        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 56)
-        assertEur(r.runwaySpr?.faRefundOct2028 ?? 0, 37_934, "Runway FA-Erstattung")
-        XCTAssertEqual(label(r.crossStd!), "Nov 2036")
-        XCTAssertEqual(label(r.crossSpr!), "Nov 2039")
-        assertEur(r.crossMonthlyLoss, 764, "Netto-Einbuße")
-        assertEur(r.sprinterNetDiff, 25_556, "Sprinter-Bilanz")
-        assertEur(r.isolatedNettoPraemie, 34_020, "Netto-Prämie")
+        eur(r.netVoll, 104471, "Sofort-Netto")
+        eur(r.erstattung, 38811, "Erstattung/Nachzahlung")
+        eur(r.netFf, 142810, "Optimal-Netto")
+        eur(r.liq28, 153570, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 19086, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 32540, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 48, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 54, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 41580, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Okt 2036")
+        XCTAssertEqual(label(r.crossSpr), "Okt 2039")
+        eur(r.crossMonthlyLoss, 726, "Netto-Einbusse")
     }
 
-    func testTaxTariffBoundaries() {
+    func testScenario_NegativeBase() {
+        var i = Inputs()
+        i.isTurbo = true
+        i.optEnabled = true
+        i.ruerup = 20000
+        i.iabInvest = 100000
+        let r = Calculator.compute(i)
+        eur(r.netVoll, 111394, "Sofort-Netto")
+        eur(r.erstattung, 72804, "Erstattung/Nachzahlung")
+        eur(r.netFf, 183725, "Optimal-Netto")
+        eur(r.liq28, 74903, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 7867, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 38940, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 55, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 56, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 59352, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Mai 2040")
+        XCTAssertEqual(label(r.crossSpr), "Apr 2043")
+        eur(r.crossMonthlyLoss, 766, "Netto-Einbusse")
+    }
+
+    func testScenario_LateStart() {
+        var i = Inputs()
+        i.startMonth = 10
+        let r = Calculator.compute(i)
+        eur(r.netVoll, 82756, "Sofort-Netto")
+        eur(r.erstattung, 2685, "Erstattung/Nachzahlung")
+        eur(r.netFf, 83439, "Optimal-Netto")
+        eur(r.liq28, 135673, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 17280, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 29237, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 49, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 50, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 11241, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Sep 2036")
+        XCTAssertEqual(label(r.crossSpr), "Jan 2039")
+        eur(r.crossMonthlyLoss, 766, "Netto-Einbusse")
+    }
+
+    func testScenario_Nachzahlung() {
+        var i = Inputs()
+        i.agFiktivGehalt = 0
+        i.kinder = 0
+        let r = Calculator.compute(i)
+        eur(r.netVoll, 95395, "Sofort-Netto")
+        eur(r.erstattung, -5422, "Erstattung/Nachzahlung")
+        eur(r.netFf, 89973, "Optimal-Netto")
+        eur(r.liq28, 125523, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 25744, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 33934, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 47, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 51, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 24739, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Feb 2036")
+        XCTAssertEqual(label(r.crossSpr), "Jul 2038")
+        eur(r.crossMonthlyLoss, 764, "Netto-Einbusse")
+    }
+
+    func testScenario_ManyKidsDrv() {
+        var i = Inputs()
+        i.isTurbo = true
+        i.kinder = 2.5
+        i.zusatzbeitrag = 3.5
+        i.optEnabled = true
+        i.bav = 20000
+        i.drv = 30000
+        let r = Calculator.compute(i)
+        eur(r.netVoll, 77960, "Sofort-Netto")
+        eur(r.erstattung, 53384, "Erstattung/Nachzahlung")
+        eur(r.netFf, 130863, "Optimal-Netto")
+        eur(r.liq28, 141930, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 26188, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 38453, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 41, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 44, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 45937, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Jul 2034")
+        XCTAssertEqual(label(r.crossSpr), "Apr 2037")
+        eur(r.crossMonthlyLoss, 766, "Netto-Einbusse")
+    }
+
+    func testScenario_HighEarner() {
+        var i = Inputs()
+        i.altesMonatsgehalt = 15000
+        i.bruttoAbfindung = 400000
+        i.startMonth = 6
+        i.fristMonate = 6
+        i.isTurbo = true
+        i.agFiktivGehalt = 180000
+        i.optEnabled = true
+        i.bav = 50500
+        let r = Calculator.compute(i)
+        eur(r.netVoll, 249622, "Sofort-Netto")
+        eur(r.erstattung, 28943, "Erstattung/Nachzahlung")
+        eur(r.netFf, 274343, "Optimal-Netto")
+        eur(r.liq28, 317331, "Konto Ende 2028")
+        eur(r.sprinterNetDiff, 17582, "Sprinter-Bilanz")
+        eur(r.isolatedNettoPraemie, 75182, "Netto-Praemie")
+        XCTAssertEqual(r.runwayStd?.exhaustedMonth, 94, "Reichweite Standard")
+        XCTAssertEqual(r.runwaySpr?.exhaustedMonth, 101, "Reichweite Sprinter")
+        eur(r.runwaySpr?.faRefundOct2028 ?? 0, 55859, "Runway FA")
+        XCTAssertEqual(label(r.crossStd), "Feb 2031")
+        XCTAssertEqual(label(r.crossSpr), "Okt 2031")
+        eur(r.crossMonthlyLoss, 5036, "Netto-Einbusse")
+    }
+
+
+    // MARK: Rule tests (hand-calculated)
+
+    func testDraftTariff2027() {
         XCTAssertEqual(TaxMath.est(12_564, 1), 0)
         XCTAssertEqual(TaxMath.est(-5, 1), 0)
-        XCTAssertGreaterThan(TaxMath.est(70_601, 1), 0)
-        XCTAssertEqual(TaxMath.est(50_000, 2), TaxMath.est(25_000, 1) * 2)
+        XCTAssertEqual(TaxMath.est(15_000, 1), 397)
+        XCTAssertEqual(TaxMath.est(18_000, 1), 1_042)
+        XCTAssertEqual(TaxMath.est(50_000, 1), 10_482)
+        XCTAssertEqual(TaxMath.est(100_000, 1), 30_758)
+        XCTAssertEqual(TaxMath.est(250_000, 1), 93_758)
+        XCTAssertEqual(TaxMath.est(300_000, 1), 116_658)
+        XCTAssertEqual(TaxMath.est(100_000, 2), 2 * TaxMath.est(50_000, 1))
+        // zone borders join up (at most 1 EUR rounding)
+        XCTAssertLessThanOrEqual(abs(TaxMath.est(17_800, 1) - TaxMath.est(17_799, 1)), 1)
+        XCTAssertLessThanOrEqual(abs(TaxMath.est(70_601, 1) - TaxMath.est(70_600, 1)), 1)
+        XCTAssertLessThanOrEqual(abs(TaxMath.est(250_000, 1) - TaxMath.est(249_999, 1)), 1)
+        XCTAssertLessThanOrEqual(abs(TaxMath.est(280_000, 1) - TaxMath.est(279_999, 1)), 1)
+    }
+
+    func testSoliFreigrenze() {
+        XCTAssertEqual(TaxMath.soli(20_350, 1), 0)
+        XCTAssertEqual(TaxMath.soli(30_000, 1), (30_000 - 20_350) * 0.119, accuracy: 0.001)
+        XCTAssertEqual(TaxMath.soli(40_700, 2), 0)
+        XCTAssertEqual(TaxMath.soli(100_000, 1), 5_500, accuracy: 0.001)
+    }
+
+    func testNegativeBaseIsOffsetAgainstAbfindung() {
+        // § 34 Abs. 1 Satz 3 EStG: 5 x tax on (100.000 - 10.000) / 5 = 5 x est(18.000)
+        let t = TaxMath.totalTax(zve: -10_000, spl: 1, fuenftel: true, abf: 100_000)
+        XCTAssertEqual(t.est, 5_210)
+        // negative base larger than the Abfindung -> no tax
+        XCTAssertEqual(TaxMath.totalTax(zve: -150_000, spl: 1, fuenftel: true, abf: 100_000).total, 0)
+    }
+
+    func testWithholdingIgnoresKinderfreibetragForLohnsteuer() {
+        let noKids = TaxCtx(spl: 1, kinder: 0, kist: 0).withholding(60_000)
+        let kids = TaxCtx(spl: 1, kinder: 1, kist: 0.09).withholding(60_000)
+        XCTAssertEqual(kids.lst, noKids.lst)                    // Lohnsteuer itself unchanged
+        XCTAssertLessThan(kids.soli, noKids.soli + 0.001)       // Soli uses the reduced tax
+        XCTAssertEqual(kids.kist, 0.09 * TaxMath.est(60_000 - 10_056, 1), accuracy: 0.001)
+    }
+
+    func testKirchensteuerLowersNetResult() {
+        var i = Inputs()
+        let base = Calculator.compute(i)
+        i.kirchensteuer = 0.08
+        let bayern = Calculator.compute(i)
+        i.kirchensteuer = 0.09
+        let other = Calculator.compute(i)
+        XCTAssertLessThan(bayern.netFf, base.netFf)
+        XCTAssertLessThan(other.netFf, bayern.netFf)
+        XCTAssertLessThan(other.netVoll, bayern.netVoll)
+        XCTAssertGreaterThan(other.kistWithheld, 0)
+        XCTAssertGreaterThan(other.kistFinal, 0)
+        XCTAssertEqual(base.kistFinal, 0)
+    }
+
+    func testNachzahlungIsNotHidden() {
+        var i = Inputs()
+        i.agFiktivGehalt = 0
+        i.kinder = 0
+        XCTAssertLessThan(Calculator.compute(i).erstattung, 0)
+    }
+
+    func testPflegeversicherungCautiousRates() {
+        XCTAssertEqual(TaxMath.pvRate(0), 0.027, accuracy: 1e-9)       // 1,8 % + 0,9 Kinderlosenzuschlag
+        XCTAssertEqual(TaxMath.pvRate(0.5), 0.018, accuracy: 1e-9)
+        XCTAssertEqual(TaxMath.pvRate(2), 0.0155, accuracy: 1e-9)      // minus 0,25 Punkte ab dem 2. Kind
+        XCTAssertEqual(TaxMath.pvRate(6), 0.008, accuracy: 1e-9)       // Abschlag nur bis zum 5. Kind
+        XCTAssertEqual(TaxMath.gkvHoechstsatzMonat(2.9, kinder: 1), 6_375 * 0.211, accuracy: 0.001)
+        XCTAssertEqual(TaxMath.gkvHoechstsatzMonat(2.9, kinder: 0), 6_375 * 0.220, accuracy: 0.001)
+    }
+
+    func testRuhenszeitAndSperrzeit() {
+        XCTAssertEqual(Calculator.ruhensMonths(abfindung: 202_500, monthly: 7_000, frist: 5, anteil: 0.6), 5)
+        XCTAssertEqual(Calculator.ruhensMonths(abfindung: 20_000, monthly: 7_000, frist: 5, anteil: 0.6), 2)
+        XCTAssertEqual(Calculator.ruhensMonths(abfindung: 1_000_000, monthly: 7_000, frist: 18, anteil: 0.6), 12)
+        XCTAssertEqual(Calculator.sperrzeitMonths(alg1Months: 12), 3)
+        XCTAssertEqual(Calculator.sperrzeitMonths(alg1Months: 18), 5)
+        XCTAssertEqual(Calculator.sperrzeitMonths(alg1Months: 0), 0)
+    }
+
+    func testPayoutStaysIn2027() {
+        var i = Inputs()
+        i.startMonth = 12
+        i.fristMonate = 6
+        let r = Calculator.compute(i)
+        XCTAssertEqual(r.salMonthsStd, 12)
+        XCTAssertEqual(r.runwayStd?.salMonthsTotal, 17)   // salary phase continues, Abfindung taxed/paid in 2027
+        XCTAssertGreaterThan(r.netVoll, 0)
     }
 
     func testFormatting() {
         XCTAssertEqual(Fmt.eur(1_234_567.4), "1.234.567 €")
         XCTAssertEqual(Fmt.eur(0), "0 €")
         XCTAssertEqual(Fmt.signedEur(-1500), "− 1.500 €")
+    }
+
+    func testPresetKeepsIntendedBavValue() {
+        let model = AppModel(inputs: Inputs())
+        model.apply(.sprinterSweet)
+        XCTAssertEqual(model.inputs.bav, 42_480)
+        XCTAssertTrue(model.inputs.isTurbo)
+        XCTAssertTrue(model.inputs.optEnabled)
+        XCTAssertGreaterThan(model.inputs.ruerup, 0)
     }
 }

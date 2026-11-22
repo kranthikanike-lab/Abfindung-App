@@ -59,7 +59,7 @@ struct InputsView: View {
             }
 
             IntField(title: "Kündigungsfrist (Monate)", value: m.inputs.fristMonate, info: Info.frist,
-                     hint: "Restlaufzeit ab Startmonat")
+                     hint: "Restlaufzeit ab Startmonat. Die Auszahlung wird immer in 2027 angenommen.")
             NumberField(title: "Basis-Abfindung (Brutto €)", value: m.inputs.bruttoAbfindung,
                         info: Info.abfindung, hint: "Ohne Sprinter-Prämie")
             NumberField(title: "Neues Gehalt 2027 (Brutto €)", value: m.inputs.neuesGehalt,
@@ -89,6 +89,15 @@ struct InputsView: View {
                     ForEach(kinderOptions, id: \.0) { Text($0.1).tag($0.0) }
                 }.pickerStyle(.menu)
                 Hint("KFB: \(Fmt.eur(r.kfb)) vs. KG: \(Fmt.eur(r.kg))")
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                FieldLabel(title: "Kirchensteuer", info: Info.kirchensteuer)
+                Picker("Kirchensteuer", selection: m.inputs.kirchensteuer) {
+                    Text("Keine").tag(0.0)
+                    Text("8 % (BY, BW)").tag(0.08)
+                    Text("9 % (übrige)").tag(0.09)
+                }.pickerStyle(.segmented)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -123,6 +132,8 @@ struct InputsView: View {
         SectionToggle(title: "🚀 Vorzeitiger Austritt / Sprinter-Option", badge: badge, isOn: m.inputs.isTurbo) {
             NumberField(title: "Sprinter-Faktor (pro Monat)", value: m.inputs.turboFaktor, info: Info.sprinterFaktor,
                         hint: "Brutto-Prämie: + \(Fmt.eur(r.sprinterBruttoPraemie))")
+            NumberField(title: "Anrechnungsanteil Ruhenszeit (%)", value: m.inputs.ruhensAnteil, info: Info.ruhensAnteil,
+                        hint: "Gesetzlich 25–60 %, 60 % = vorsichtig. Ruhenszeit: \(r.ruhensMonthsSprinter) Mon., Sperrzeit kürzt ALG 1 um \(r.sperrzeitMonths) Mon.")
             VStack(alignment: .leading, spacing: 6) {
                 FieldLabel(title: "ALG 1 Satz (Auto aus Brutto & Kinder)", info: Info.alg1)
                 Picker("ALG 1", selection: m.inputs.alg1Satz) {
