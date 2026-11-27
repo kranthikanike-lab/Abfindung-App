@@ -14,7 +14,7 @@ struct ResultsView: View {
                             sub: r.erstattung >= 0 ? tr("Durch Fünftelregelung & Steuerhebel") : tr("Steuer liegt über dem Einbehalt"),
                             color: r.erstattung >= 0 ? Theme.success : Theme.danger)
                     KPITile(label: tr("Optimal-Netto Abfindung"), value: Fmt.eur(r.netFf),
-                            sub: tr("Effektiver Steuersatz: \(Fmt.pct(r.rateFinal))"), color: Theme.accent)
+                            sub: tr("Effektiver Steuersatz: \(Fmt.pct(r.rateFinal))"), color: Theme.accent, prominent: true)
                     KPITile(label: tr("Konto-Cash Ende 2028 (Gesamt)"), value: Fmt.eur(r.liq28),
                             sub: tr("Inkl. Netto-Gehalt 2027 & FA-Erstattung"),
                             color: r.liq28 < 0 ? Theme.danger : Theme.success)

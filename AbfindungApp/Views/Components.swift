@@ -45,7 +45,7 @@ extension View {
     /// Card surface with a hairline border so white cards stay defined on the teal-grey page.
     func cardBackground(radius: CGFloat = 16) -> some View {
         self.background(Theme.card, in: RoundedRectangle(cornerRadius: radius))
-            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Theme.border, lineWidth: 0.6))
+            .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 3)
     }
 
     /// Navigation bar and tab bar in the theme colors.
@@ -62,18 +62,19 @@ struct Card<Content: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var content: Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             if let title {
-                VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
                     Text(title).font(.headline)
-                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
+                    if let subtitle { InfoButton(info: InfoText(title: title, text: subtitle)) }
+                    Spacer(minLength: 0)
                 }
             }
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .cardBackground(radius: 16)
+        .padding(16)
+        .cardBackground(radius: 22)
     }
 }
 
@@ -111,10 +112,22 @@ struct InfoButton: View {
 struct FieldLabel: View {
     let title: String
     var info: InfoText? = nil
+    /// Short explanation or live value; shown inside the ⓘ sheet instead of as a line of text.
+    var hint: String? = nil
+
+    private var merged: InfoText? {
+        switch (info, hint) {
+        case let (i?, h?): return InfoText(title: i.title, text: i.text + "\n\n" + h)
+        case let (i?, nil): return i
+        case let (nil, h?): return InfoText(title: title, text: h)
+        default: return nil
+        }
+    }
+
     var body: some View {
         HStack(spacing: 6) {
             Text(title).font(.subheadline.weight(.medium))
-            if let info { InfoButton(info: info) }
+            if let merged { InfoButton(info: merged) }
             Spacer(minLength: 0)
         }
     }
@@ -134,7 +147,7 @@ struct NumberField: View {
     var hint: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            FieldLabel(title: title, info: info)
+            FieldLabel(title: title, info: info, hint: hint)
             HStack {
                 TextField("0", value: $value, format: .number)
                     .keyboardType(.decimalPad)
@@ -142,8 +155,7 @@ struct NumberField: View {
                 if !suffix.isEmpty { Text(suffix).foregroundStyle(.secondary) }
             }
             .padding(10)
-            .background(Theme.field, in: RoundedRectangle(cornerRadius: 10))
-            if let hint { Hint(hint) }
+            .background(Theme.field, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 }
@@ -182,13 +194,12 @@ struct StepperField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                FieldLabel(title: title, info: info)
+                FieldLabel(title: title, info: info, hint: hint)
                 Text(text).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
                 Stepper("", value: rounded, in: range, step: step)
                     .labelsHidden()
                     .fixedSize()
             }
-            if let hint { Hint(hint) }
         }
     }
 }
@@ -227,12 +238,9 @@ struct InfoRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Text(title).font(.subheadline)
-                if let info { InfoButton(info: info) }
-                Spacer(minLength: 6)
+                FieldLabel(title: title, info: info, hint: hint)
                 Text(value).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
             }
-            if let hint { Hint(hint) }
         }
     }
 }
@@ -258,12 +266,12 @@ struct AmountSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
-                FieldLabel(title: title, info: info)
+                FieldLabel(title: title, info: info, hint: hint)
                 Text(text(value)).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
             }
             Slider(value: Binding(get: { min(max(value, range.lowerBound), upper) }, set: { value = $0 }),
                    in: range.lowerBound...upper, step: step)
-            if let hint { Hint(hint) }
+                .tint(Theme.accent)
         }
     }
 }
@@ -286,16 +294,26 @@ struct KPITile: View {
     let value: String
     var sub: String? = nil
     var color: Color = .primary
+    /// Highlighted tile: accent gradient with white text (the one number that matters most).
+    var prominent = false
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-            Text(value).font(.title3.weight(.heavy)).foregroundStyle(color)
+            Text(label).font(.caption).foregroundStyle(prominent ? Color.white.opacity(0.85) : Color.secondary).lineLimit(2)
+            Text(value).font(.title2.weight(.heavy)).foregroundStyle(prominent ? Color.white : color)
                 .minimumScaleFactor(0.6).lineLimit(1)
-            if let sub { Text(sub).font(.caption2).foregroundStyle(.secondary).lineLimit(3) }
+            if let sub { Text(sub).font(.caption2).foregroundStyle(prominent ? Color.white.opacity(0.85) : Color.secondary).lineLimit(2) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .cardBackground(radius: 14)
+        .padding(14)
+        .background {
+            if prominent {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient(colors: [Theme.accent, Theme.accent.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            } else {
+                RoundedRectangle(cornerRadius: 20).fill(Theme.card)
+            }
+        }
+        .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 3)
     }
 }
 

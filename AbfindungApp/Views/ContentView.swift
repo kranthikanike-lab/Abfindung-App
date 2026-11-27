@@ -24,6 +24,8 @@ struct ContentView: View {
                 .tabItem { Label("Switch", systemImage: "arrow.left.arrow.right") }
                 .tag(AppTab.crossover)
         }
+        .fontDesign(.rounded)
+        .tint(Theme.accent)
         .preferredColorScheme(ThemeChoice(rawValue: themeRaw)?.scheme)
         .sheet(isPresented: $sheets.showLegal) { LegalSheet() }
         .sheet(isPresented: $sheets.showUnlock) { UnlockSheet() }

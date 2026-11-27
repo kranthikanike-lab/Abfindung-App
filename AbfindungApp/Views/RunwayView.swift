@@ -11,9 +11,6 @@ struct RunwayProContent: View {
                 Card(title: tr("🧭 C. Cash-Burn & Reichweite (Überleben ohne Job)"),
                      subtitle: tr("Austrittsmonat und Gehalt kommen aus „Eingaben“ (Sprinter: \(r.salMonthsSpr)M | Standard: \(r.salMonthsStd)M Gehalt).")) {
                     Toggle(tr("Reichweite berechnen"), isOn: $m.inputs.runwayEnabled).font(.subheadline.weight(.semibold))
-                    if !model.inputs.runwayEnabled {
-                        Hint(tr("Einschalten, um Reichweite, Lebensphasen und Konto-Verlauf zu berechnen."))
-                    }
                     if model.inputs.runwayEnabled {
                     AmountSlider(title: tr("Monatl. Netto-Ausgaben (ohne GKV, €)"), value: $m.inputs.runwayExpenses,
                                  range: 500...10_000, step: 100, hint: tr("Private Lebenshaltungskosten"))
@@ -24,13 +21,15 @@ struct RunwayProContent: View {
                     AmountSlider(title: tr("Sofort-Abfluss 2027 (€)"), value: $m.inputs.runwayUpfrontSpend,
                                  range: 0...200_000, step: 5_000, hint: tr("Einmalausgabe / Tilgung / Rücklage"))
                     VStack(alignment: .leading, spacing: 4) {
-                        FieldLabel(title: tr("GKV-Beitrag nach ALG 1"), info: Info.gkvNachAlg)
+                        FieldLabel(title: tr("GKV-Beitrag nach ALG 1"), info: Info.gkvNachAlg,
+                                   hint: model.inputs.runwayGkvMode == .min
+                                       ? tr("~\(Fmt.eur(r.ctx?.gkvMinMonat ?? 0))/Mo (Mindestbeitrag)")
+                                       : (model.inputs.runwayGkvMode == .fam ? tr("0 €/Mo – über Partner/in mitversichert") : nil))
                         Picker("GKV", selection: $m.inputs.runwayGkvMode) {
                             ForEach(GkvMode.allCases) { Text($0.shortLabel).tag($0) }
                         }.pickerStyle(.segmented)
                         switch model.inputs.runwayGkvMode {
-                        case .min: Hint(tr("~\(Fmt.eur(r.ctx?.gkvMinMonat ?? 0))/Mo (Mindestbeitrag)"))
-                        case .fam: Hint(tr("0 €/Mo – über Partner/in mitversichert"))
+                        case .min, .fam: EmptyView()
                         case .custom:
                             AmountSlider(title: tr("Individueller GKV-Beitrag"), value: $m.inputs.runwayCustomGkv,
                                          range: 0...1_500, step: 10, suffix: "€/Mo")
@@ -114,9 +113,6 @@ struct CrossoverProContent: View {
                 Card(title: tr("📉 D. Gehalts-Switch / Break-Even Rechner"),
                      subtitle: tr("Neuer Job mit weniger Gehalt. Austritt, Ausgaben, ALG 1, GKV & Realzins kommen aus „Reichweite“.")) {
                     Toggle(tr("Gehalts-Switch berechnen"), isOn: $m.inputs.crossoverEnabled).font(.subheadline.weight(.semibold))
-                    if !model.inputs.crossoverEnabled {
-                        Hint(tr("Einschalten, um Break-Even und Vermögens-Vorsprung zu berechnen."))
-                    }
                     if model.inputs.crossoverEnabled {
                     VStack(alignment: .leading, spacing: 8) {
                         AmountSlider(title: tr("Neues Bruttogehalt (€)"), value: $m.inputs.crossoverNewGross,

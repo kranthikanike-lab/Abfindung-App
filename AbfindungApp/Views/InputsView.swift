@@ -49,13 +49,13 @@ struct InputsView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    FieldLabel(title: tr("Start Frist / Sprinter-Austritt 2027"), info: Info.startMonth)
+                    FieldLabel(title: tr("Start Frist / Sprinter-Austritt 2027"), info: Info.startMonth,
+                               hint: tr("Sprinter: \(r.salMonthsSpr)M Gehalt | Standard: \(r.salMonthsStd)M Gehalt"))
                     Picker(tr("Startmonat"), selection: m.inputs.startMonth) {
                         ForEach(1...12, id: \.self) { n in Text(monthNames[n - 1] + " 2027").tag(n) }
                     }
                     .pickerStyle(.menu)
                 }
-                Hint(tr("Sprinter: \(r.salMonthsSpr)M Gehalt | Standard: \(r.salMonthsStd)M Gehalt"))
             }
 
             StepperField(title: tr("Kündigungsfrist (Monate)"), value: m.inputs.fristMonate.asDouble,
@@ -73,10 +73,10 @@ struct InputsView: View {
                 Toggle(tr("Automatisch (12 × Monatsgehalt)"), isOn: m.inputs.agFiktivAuto).font(.subheadline)
                 if model.inputs.agFiktivAuto {
                     HStack {
-                        FieldLabel(title: tr("Fiktives AG-Jahresgehalt (€)"), info: Info.agFiktiv)
+                        FieldLabel(title: tr("Fiktives AG-Jahresgehalt (€)"), info: Info.agFiktiv,
+                                   hint: tr("Basis für Lohnsteuer-Einbehalt"))
                         Text(Fmt.eur(r.jahresBrutto)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.accent)
                     }
-                    Hint(tr("Basis für Lohnsteuer-Einbehalt"))
                 } else {
                     AmountSlider(title: tr("Fiktives AG-Jahresgehalt (€)"), value: m.inputs.agFiktivGehalt,
                                  range: 0...300_000, step: 2_500, info: Info.agFiktiv,
@@ -90,12 +90,12 @@ struct InputsView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    FieldLabel(title: tr("Kinder (Freibetrag)"), info: Info.kinder)
+                    FieldLabel(title: tr("Kinder (Freibetrag)"), info: Info.kinder,
+                               hint: tr("KFB: \(Fmt.eur(r.kfb)) vs. KG: \(Fmt.eur(r.kg))"))
                     Picker(tr("Kinder"), selection: Binding(get: { model.inputs.kinder }, set: { model.setKinder($0) })) {
                         ForEach(kinderOptions, id: \.0) { Text($0.1).tag($0.0) }
                     }.pickerStyle(.menu)
                 }
-                Hint(tr("KFB: \(Fmt.eur(r.kfb)) vs. KG: \(Fmt.eur(r.kg))"))
             }
 
             VStack(alignment: .leading, spacing: 4) {
