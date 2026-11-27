@@ -21,7 +21,7 @@ struct OptimizationView: View {
         @Bindable var m = model
         let r = model.results
         return ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 optimizationCard(m: $m, r: r)
             }
             .padding(.horizontal, Theme.pageMargin)

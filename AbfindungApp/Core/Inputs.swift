@@ -10,6 +10,15 @@ enum GkvMode: String, Codable, CaseIterable, Identifiable {
         case .custom: return tr("Individuell (€/Mo)")
         }
     }
+
+    /// Short label for the segmented control.
+    var shortLabel: String {
+        switch self {
+        case .min: return tr("Mindestbeitrag")
+        case .fam: return tr("Familie")
+        case .custom: return tr("Eigener Betrag")
+        }
+    }
 }
 
 /// All user inputs (mirrors the form fields of the HTML calculator, incl. its defaults).
@@ -36,8 +45,9 @@ struct Inputs: Codable, Equatable {
     var turboFaktor = 1.5
     var alg1Satz = 0.67
     var includeAlg1Loss = false
-    /// Anrechnungsanteil der Abfindung für die Ruhenszeit (§ 158 SGB III: 25–60 %). 60 % = vorsichtigster Wert.
-    var ruhensAnteil = 60.0
+    /// Age and years at the company determine which share of the Abfindung counts for the Ruhenszeit (§ 158 SGB III).
+    var alter = 45
+    var betriebsjahre = 10
 
     // B. Steuer-Optimierung
     var optEnabled = false

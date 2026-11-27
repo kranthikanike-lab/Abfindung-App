@@ -6,7 +6,7 @@ struct ResultsView: View {
     var body: some View {
         let r = model.results
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 KPIGrid {
                     KPITile(label: tr("Sofort-Netto Abfindung (2027)"), value: Fmt.eur(r.netVoll), sub: tr("Nach AG-Lohnsteuer-Einbehalt"))
                     KPITile(label: r.erstattung >= 0 ? tr("Erstattung Finanzamt (Okt. 2028)") : tr("Nachzahlung Finanzamt (Okt. 2028)"),

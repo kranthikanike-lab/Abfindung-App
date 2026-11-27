@@ -51,6 +51,8 @@ struct Results {
     var salMonthsSpr = 0
     var sprinterBruttoPraemie = 0.0
     var ruhensMonthsSprinter = 0
+    /// Share of the Abfindung counted for the Ruhenszeit (0.25 ... 0.60).
+    var ruhensAnteil = 0.0
     var sperrzeitMonths = 0
 
     // Optimierung
@@ -120,6 +122,13 @@ struct Results {
 }
 
 enum Calculator {
+    /// Share of the Abfindung that counts for the Ruhenszeit (§ 158 SGB III):
+    /// 60 %, minus 5 percentage points per 5 full years at the company and per 5 full years of age after 35, at least 25 %.
+    static func ruhensAnteil(alter: Int, betriebsjahre: Int) -> Double {
+        let blocks = max(0, betriebsjahre) / 5 + max(0, alter - 35) / 5
+        return max(0.25, 0.60 - 0.05 * Double(blocks))
+    }
+
     /// Number of Ruhenszeit months (§ 158 SGB III): shorter of the notice period and
     /// Abfindung × Anrechnungsanteil ÷ monthly salary, at most 12 months.
     static func ruhensMonths(abfindung: Double, monthly: Double, frist: Int, anteil: Double) -> Int {
@@ -150,7 +159,8 @@ enum Calculator {
         let isTurbo = i.isTurbo
         let turboFaktor = max(0, i.turboFaktor)
         let fristD = Double(frist)
-        let anteil = min(60, max(25, i.ruhensAnteil)) / 100
+        let anteil = ruhensAnteil(alter: i.alter, betriebsjahre: i.betriebsjahre)
+        r.ruhensAnteil = anteil
         let tc = TaxCtx(spl: spl, kinder: kinder, kist: i.kirchensteuer)
         let tcSingle = TaxCtx(spl: 1, kinder: kinder, kist: i.kirchensteuer)
 

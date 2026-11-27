@@ -7,7 +7,7 @@ struct RunwayProContent: View {
         @Bindable var m = model
         let r = model.results
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 Card(title: tr("🧭 C. Cash-Burn & Reichweite (Überleben ohne Job)"),
                      subtitle: tr("Austrittsmonat und Gehalt kommen aus „Eingaben“ (Sprinter: \(r.salMonthsSpr)M | Standard: \(r.salMonthsStd)M Gehalt).")) {
                     Toggle(tr("Reichweite berechnen"), isOn: $m.inputs.runwayEnabled).font(.subheadline.weight(.semibold))
@@ -23,12 +23,15 @@ struct RunwayProContent: View {
                                  hint: tr("Sprinter: \(r.runwaySpr?.algMonths ?? 0)M (inkl. Sperrzeit) | Std: \(r.runwayStd?.algMonths ?? 0)M"))
                     AmountSlider(title: tr("Sofort-Abfluss 2027 (€)"), value: $m.inputs.runwayUpfrontSpend,
                                  range: 0...200_000, step: 5_000, hint: tr("Einmalausgabe / Tilgung / Rücklage"))
-                    VStack(alignment: .leading, spacing: 6) {
-                        FieldLabel(title: tr("GKV-Status nach ALG 1"), info: Info.runwayGkv)
+                    VStack(alignment: .leading, spacing: 4) {
+                        FieldLabel(title: tr("GKV-Beitrag nach ALG 1"), info: Info.gkvNachAlg)
                         Picker("GKV", selection: $m.inputs.runwayGkvMode) {
-                            ForEach(GkvMode.allCases) { Text($0.label).tag($0) }
-                        }.pickerStyle(.menu)
-                        if model.inputs.runwayGkvMode == .custom {
+                            ForEach(GkvMode.allCases) { Text($0.shortLabel).tag($0) }
+                        }.pickerStyle(.segmented)
+                        switch model.inputs.runwayGkvMode {
+                        case .min: Hint(tr("~\(Fmt.eur(r.ctx?.gkvMinMonat ?? 0))/Mo (Mindestbeitrag)"))
+                        case .fam: Hint(tr("0 €/Mo – über Partner/in mitversichert"))
+                        case .custom:
                             AmountSlider(title: tr("Individueller GKV-Beitrag"), value: $m.inputs.runwayCustomGkv,
                                          range: 0...1_500, step: 10, suffix: "€/Mo")
                         }
@@ -107,7 +110,7 @@ struct CrossoverProContent: View {
         @Bindable var m = model
         let r = model.results
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 Card(title: tr("📉 D. Gehalts-Switch / Break-Even Rechner"),
                      subtitle: tr("Neuer Job mit weniger Gehalt. Austritt, Ausgaben, ALG 1, GKV & Realzins kommen aus „Reichweite“.")) {
                     Toggle(tr("Gehalts-Switch berechnen"), isOn: $m.inputs.crossoverEnabled).font(.subheadline.weight(.semibold))

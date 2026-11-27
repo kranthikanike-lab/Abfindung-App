@@ -296,6 +296,15 @@ final class CalculatorTests: XCTestCase {
         XCTAssertEqual(TaxMath.gkvHoechstsatzMonat(2.9, kinder: 0), 6_375 * 0.220, accuracy: 0.001)
     }
 
+    func testRuhensAnteilByAgeAndService() {
+        XCTAssertEqual(Calculator.ruhensAnteil(alter: 30, betriebsjahre: 2), 0.60, accuracy: 1e-9)
+        XCTAssertEqual(Calculator.ruhensAnteil(alter: 45, betriebsjahre: 10), 0.40, accuracy: 1e-9)
+        XCTAssertEqual(Calculator.ruhensAnteil(alter: 60, betriebsjahre: 40), 0.25, accuracy: 1e-9)
+        // older / longer service never increases the share
+        XCTAssertLessThanOrEqual(Calculator.ruhensAnteil(alter: 50, betriebsjahre: 10),
+                                 Calculator.ruhensAnteil(alter: 45, betriebsjahre: 10))
+    }
+
     func testRuhenszeitAndSperrzeit() {
         XCTAssertEqual(Calculator.ruhensMonths(abfindung: 202_500, monthly: 7_000, frist: 5, anteil: 0.6), 5)
         XCTAssertEqual(Calculator.ruhensMonths(abfindung: 20_000, monthly: 7_000, frist: 5, anteil: 0.6), 2)

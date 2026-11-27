@@ -62,7 +62,7 @@ struct Card<Content: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var content: Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let title {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.headline)
@@ -72,7 +72,7 @@ struct Card<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(12)
         .cardBackground(radius: 16)
     }
 }
@@ -156,6 +156,14 @@ extension Binding where Value == Int {
 }
 
 /// Label with the current value and a − / + stepper. For small numbers such as months or percentages.
+extension Binding where Value == Int {
+    /// Int binding as Double, e.g. for sliders.
+    var asDouble: Binding<Double> {
+        Binding<Double>(get: { Double(wrappedValue) }, set: { wrappedValue = Int($0.isFinite ? $0.rounded() : 0) })
+    }
+}
+
+/// Label with the current value and a − / + stepper. For small numbers such as months or percentages.
 struct StepperField: View {
     let title: String
     @Binding var value: Double
@@ -194,6 +202,49 @@ struct StepperField: View {
 }
 
 /// Slider with the current value shown as text (no typing). For money amounts.
+/// Compact stepper in a tinted tile, to place two small numbers side by side.
+struct StepperTile: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double = 1
+    var suffix: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.75)
+            HStack(spacing: 4) {
+                Text("\(Int(value))" + (suffix.isEmpty ? "" : " " + suffix))
+                    .font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
+                Spacer(minLength: 2)
+                Stepper("", value: $value, in: range, step: step).labelsHidden().fixedSize()
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(Theme.field, in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+/// One line "label (i) .... value", with an optional short hint below.
+struct InfoRow: View {
+    let title: String
+    let value: String
+    var info: InfoText? = nil
+    var hint: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                Text(title).font(.subheadline)
+                if let info { InfoButton(info: info) }
+                Spacer(minLength: 6)
+                Text(value).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
+            }
+            if let hint { Hint(hint) }
+        }
+    }
+}
+
 struct AmountSlider: View {
     let title: String
     @Binding var value: Double
@@ -213,19 +264,13 @@ struct AmountSlider: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 FieldLabel(title: title, info: info)
                 Text(text(value)).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
             }
             Slider(value: Binding(get: { min(max(value, range.lowerBound), upper) }, set: { value = $0 }),
                    in: range.lowerBound...upper, step: step)
-            HStack {
-                Text(text(range.lowerBound))
-                Spacer()
-                Text(text(upper))
-            }
-            .font(.caption2).foregroundStyle(.secondary)
             if let hint { Hint(hint) }
         }
     }
@@ -289,14 +334,20 @@ struct SectionToggle<Content: View>: View {
     let title: String
     let badge: String
     @Binding var isOn: Bool
+    var info: InfoText? = nil
     @ViewBuilder var content: Content
     var body: some View {
         Card {
-            Toggle(isOn: $isOn.animation()) {
+            HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline)
+                    HStack(spacing: 6) {
+                        Text(title).font(.headline)
+                        if let info { InfoButton(info: info) }
+                    }
                     Text(badge).font(.caption).foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 6)
+                Toggle("", isOn: $isOn.animation()).labelsHidden()
             }
             if isOn { content }
         }

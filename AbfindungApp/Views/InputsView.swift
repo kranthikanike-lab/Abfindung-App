@@ -14,7 +14,7 @@ struct InputsView: View {
         @Bindable var m = model
         let r = model.results
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 coreCard(m: $m, r: r)
                 sprinterCard(m: $m, r: r)
             }
@@ -47,14 +47,14 @@ struct InputsView: View {
                          range: 1_000...20_000, step: 100, info: Info.altesGehalt,
                          hint: tr("Jahresbrutto: \(Fmt.eur(r.jahresBrutto))"))
 
-            VStack(alignment: .leading, spacing: 6) {
-                FieldLabel(title: tr("Start Frist / Sprinter-Austritt 2027"), info: Info.startMonth)
-                Picker(tr("Startmonat"), selection: m.inputs.startMonth) {
-                    ForEach(1...12, id: \.self) { n in
-                        Text(tr("\(monthNames[n - 1]) 2027 (\(n - 1) Mon. Vor-Gehalt)")).tag(n)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    FieldLabel(title: tr("Start Frist / Sprinter-Austritt 2027"), info: Info.startMonth)
+                    Picker(tr("Startmonat"), selection: m.inputs.startMonth) {
+                        ForEach(1...12, id: \.self) { n in Text(monthNames[n - 1] + " 2027").tag(n) }
                     }
+                    .pickerStyle(.menu)
                 }
-                .pickerStyle(.menu)
                 Hint(tr("Sprinter: \(r.salMonthsSpr)M Gehalt | Standard: \(r.salMonthsStd)M Gehalt"))
             }
 
@@ -63,7 +63,7 @@ struct InputsView: View {
                          display: { v in tr("\(Int(v)) Mon.") },
                          hint: tr("Restlaufzeit ab Startmonat. Die Auszahlung wird immer in 2027 angenommen."))
             AmountSlider(title: tr("Basis-Abfindung (Brutto €)"), value: m.inputs.bruttoAbfindung,
-                         range: 0...500_000, step: 5_000, info: Info.abfindung,
+                         range: 0...700_000, step: 5_000, info: Info.abfindung,
                          hint: tr("Ohne Sprinter-Prämie"))
             AmountSlider(title: tr("Neues Gehalt 2027 (Jahresbetrag, Brutto €)"), value: m.inputs.neuesGehalt,
                          range: 0...200_000, step: 5_000, info: Info.neuesGehalt,
@@ -87,23 +87,18 @@ struct InputsView: View {
             StepperField(title: tr("KV-Zusatzbeitrag (%)"), value: m.inputs.zusatzbeitrag,
                          range: 0...6, step: 0.1, info: Info.gkv, decimals: 1, suffix: "%",
                          hint: tr("GKV-Höchstsatz: ~\(Fmt.eur(r.gkvHoechst))/Mo"))
-            VStack(alignment: .leading, spacing: 6) {
-                FieldLabel(title: tr("Versicherungsstatus vor Austritt"), info: Info.gkv)
-                Picker("Status", selection: m.inputs.preExitGkvPflicht) {
-                    Text(tr("Pflicht (§19)")).tag(true)
-                    Text(tr("Freiwillig")).tag(false)
-                }.pickerStyle(.segmented)
-            }
 
-            VStack(alignment: .leading, spacing: 6) {
-                FieldLabel(title: tr("Kinder (Freibetrag)"), info: Info.kinder)
-                Picker(tr("Kinder"), selection: Binding(get: { model.inputs.kinder }, set: { model.setKinder($0) })) {
-                    ForEach(kinderOptions, id: \.0) { Text($0.1).tag($0.0) }
-                }.pickerStyle(.menu)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    FieldLabel(title: tr("Kinder (Freibetrag)"), info: Info.kinder)
+                    Picker(tr("Kinder"), selection: Binding(get: { model.inputs.kinder }, set: { model.setKinder($0) })) {
+                        ForEach(kinderOptions, id: \.0) { Text($0.1).tag($0.0) }
+                    }.pickerStyle(.menu)
+                }
                 Hint(tr("KFB: \(Fmt.eur(r.kfb)) vs. KG: \(Fmt.eur(r.kg))"))
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 FieldLabel(title: tr("Kirchensteuer"), info: Info.kirchensteuer)
                 Picker(tr("Kirchensteuer"), selection: m.inputs.kirchensteuer) {
                     Text(tr("Keine")).tag(0.0)
@@ -112,12 +107,21 @@ struct InputsView: View {
                 }.pickerStyle(.segmented)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                FieldLabel(title: tr("Steuertarif 2027"), info: Info.tarif)
-                Picker(tr("Tarif"), selection: m.inputs.splitting) {
-                    Text(tr("Grundtarif")).tag(false)
-                    Text(tr("Splitting")).tag(true)
-                }.pickerStyle(.segmented)
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    FieldLabel(title: tr("Tarif"), info: Info.tarif)
+                    Picker(tr("Tarif"), selection: m.inputs.splitting) {
+                        Text(tr("Grundtarif")).tag(false)
+                        Text(tr("Splitting")).tag(true)
+                    }.pickerStyle(.segmented)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    FieldLabel(title: tr("Versicherung vor Austritt"), info: Info.gkv)
+                    Picker("Status", selection: m.inputs.preExitGkvPflicht) {
+                        Text(tr("Pflicht")).tag(true)
+                        Text(tr("Freiwillig")).tag(false)
+                    }.pickerStyle(.segmented)
+                }
             }
 
             if model.inputs.splitting {
@@ -142,20 +146,26 @@ struct InputsView: View {
         let on = model.inputs.isTurbo
         let badge = on ? tr("Aktiv (\(r.sprinterNetDiff >= 0 ? "+" : "−")\(Fmt.eur(abs(r.sprinterNetDiff))) Netto-Bilanz)")
                        : tr("Inaktiv (Frist wird regulär abgesessen)")
-        SectionToggle(title: tr("🚀 Vorzeitiger Austritt / Sprinter-Option"), badge: badge, isOn: m.inputs.isTurbo) {
+        SectionToggle(title: tr("🚀 Vorzeitiger Austritt / Sprinter-Option"), badge: badge, isOn: m.inputs.isTurbo, info: Info.sprinter) {
             StepperField(title: tr("Sprinter-Faktor (pro Monat)"), value: m.inputs.turboFaktor,
                          range: 0...3, step: 0.1, info: Info.sprinterFaktor, decimals: 1, suffix: "×",
                          hint: tr("Brutto-Prämie: + \(Fmt.eur(r.sprinterBruttoPraemie))"))
-            StepperField(title: tr("Anrechnungsanteil Ruhenszeit (%)"), value: m.inputs.ruhensAnteil,
-                         range: 25...60, step: 5, info: Info.ruhensAnteil, suffix: "%",
-                         hint: tr("Gesetzlich 25–60 %, 60 % = vorsichtig. Ruhenszeit: \(r.ruhensMonthsSprinter) Mon., Sperrzeit kürzt ALG 1 um \(r.sperrzeitMonths) Mon."))
-            VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                StepperTile(title: tr("Alter"), value: m.inputs.alter.asDouble, range: 18...67)
+                StepperTile(title: tr("Betriebszugehörigkeit (Jahre)"), value: m.inputs.betriebsjahre.asDouble, range: 0...45)
+            }
+            InfoRow(title: tr("Anteil der Abfindung für die Ruhenszeit"), value: Fmt.pct(r.ruhensAnteil * 100, digits: 0),
+                    info: Info.ruhenszeit, hint: tr("60 % minus 5 Punkte je 5 Jahre Betriebszugehörigkeit und je 5 Jahre Alter über 35, mindestens 25 %"))
+            InfoRow(title: tr("Ruhenszeit"), value: tr("\(r.ruhensMonthsSprinter) Mon."), info: Info.ruhenszeit,
+                    hint: tr("Abfindung × Anteil ÷ Monatsgehalt, höchstens Kündigungsfrist und 12 Monate"))
+            InfoRow(title: tr("Sperrzeit (12 Wochen)"), value: tr("ALG 1 −\(r.sperrzeitMonths) Mon."), info: Info.sperrzeit)
+            InfoRow(title: tr("ALG 1 (netto)"), value: tr("~\(Fmt.eur(r.alg1Monat))/Mo"), info: Info.alg1Overview)
+            VStack(alignment: .leading, spacing: 4) {
                 FieldLabel(title: tr("ALG 1 Satz (Auto aus Brutto & Kinder)"), info: Info.alg1)
                 Picker("ALG 1", selection: m.inputs.alg1Satz) {
                     Text(tr("67 % (mit Kind)")).tag(0.67)
                     Text(tr("60 % (ohne Kind)")).tag(0.60)
                 }.pickerStyle(.segmented)
-                Hint(tr("ALG 1 Netto: ~\(Fmt.eur(r.alg1Monat))/Mo"))
             }
             Toggle(tr("ALG-1-Verlust einrechnen (Anspruch voll ausgeschöpft)"), isOn: m.inputs.includeAlg1Loss)
                 .font(.subheadline)
