@@ -142,7 +142,7 @@ enum Calculator {
         let frist = max(0, i.fristMonate)
         let abfNoTurbo = max(0, i.bruttoAbfindung)
         let neues = max(0, i.neuesGehalt)
-        let agFiktiv = max(0, i.agFiktivGehalt)
+        let agFiktiv = i.agFiktivAuto ? alt * 12 : max(0, i.agFiktivGehalt)
         let zb = max(0, i.zusatzbeitrag)
         let kinder = i.kinder
         let spl = i.spl

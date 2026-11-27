@@ -15,11 +15,16 @@ struct RunwayProContent: View {
                         Hint(tr("Einschalten, um Reichweite, Lebensphasen und Konto-Verlauf zu berechnen."))
                     }
                     if model.inputs.runwayEnabled {
-                    NumberField(title: tr("Monatl. Netto-Ausgaben (ohne GKV, €)"), value: $m.inputs.runwayExpenses,
+                    Hint(tr("Regler ziehen oder die Zahl antippen, um genau einzugeben."))
+                    SliderField(title: tr("Monatl. Netto-Ausgaben (ohne GKV, €)"), value: $m.inputs.runwayExpenses,
+                                range: 500...10_000, step: 100, suffix: "€",
                                 hint: tr("Private Lebenshaltungskosten"))
-                    IntField(title: tr("Gesamter ALG-1 Anspruch (Monate)"), value: $m.inputs.runwayAlg1Months,
-                             hint: tr("Sprinter: \(r.runwaySpr?.algMonths ?? 0)M (inkl. Sperrzeit) | Std: \(r.runwayStd?.algMonths ?? 0)M"))
-                    NumberField(title: tr("Sofort-Abfluss 2027 (€)"), value: $m.inputs.runwayUpfrontSpend,
+                    SliderField(title: tr("Gesamter ALG-1 Anspruch (Monate)"), value: $m.inputs.runwayAlg1Months.asDouble,
+                                range: 0...24, step: 1,
+                                displayText: { v in tr("\(Int(v)) Mon.") },
+                                hint: tr("Sprinter: \(r.runwaySpr?.algMonths ?? 0)M (inkl. Sperrzeit) | Std: \(r.runwayStd?.algMonths ?? 0)M"))
+                    SliderField(title: tr("Sofort-Abfluss 2027 (€)"), value: $m.inputs.runwayUpfrontSpend,
+                                range: 0...200_000, step: 1_000, suffix: "€",
                                 hint: tr("Einmalausgabe / Tilgung / Rücklage"))
                     VStack(alignment: .leading, spacing: 6) {
                         FieldLabel(title: tr("GKV-Status nach ALG 1"), info: Info.runwayGkv)
@@ -27,12 +32,15 @@ struct RunwayProContent: View {
                             ForEach(GkvMode.allCases) { Text($0.label).tag($0) }
                         }.pickerStyle(.menu)
                         if model.inputs.runwayGkvMode == .custom {
-                            NumberField(title: tr("Individueller GKV-Beitrag"), value: $m.inputs.runwayCustomGkv, suffix: "€/Mo")
+                            SliderField(title: tr("Individueller GKV-Beitrag"), value: $m.inputs.runwayCustomGkv,
+                                        range: 0...1_500, step: 10, suffix: "€/Mo")
                         }
                     }
-                    NumberField(title: tr("Real-Zins / Inflation p.a. (%)"), value: $m.inputs.runwayRealReturn,
-                                info: Info.realReturn, hint: tr("Rendite nach Steuer minus Inflation"))
-                    NumberField(title: tr("Minijob nach Austritt (€/Mo)"), value: $m.inputs.runwayMinijob, info: Info.minijob,
+                    SliderField(title: tr("Real-Zins / Inflation p.a. (%)"), value: $m.inputs.runwayRealReturn,
+                                range: -5...8, step: 0.5, info: Info.realReturn, suffix: "%", decimals: 1,
+                                hint: tr("Rendite nach Steuer minus Inflation"))
+                    SliderField(title: tr("Minijob nach Austritt (€/Mo)"), value: $m.inputs.runwayMinijob,
+                                range: 0...556, step: 10, info: Info.minijob, suffix: "€",
                                 hint: model.inputs.runwayMinijob > 0
                                 ? tr("Während ALG 1: +\(Fmt.eur(min(165, model.inputs.runwayMinijob)))/Mo frei | Nach ALG 1: +\(Fmt.eur(model.inputs.runwayMinijob))/Mo voll")
                                 : tr("Steuer- & GKV-frei (während ALG 1 max. 165 € frei)"))
@@ -110,20 +118,34 @@ struct CrossoverProContent: View {
                         Hint(tr("Einschalten, um Break-Even und Vermögens-Vorsprung zu berechnen."))
                     }
                     if model.inputs.crossoverEnabled {
-                    VStack(alignment: .leading, spacing: 6) {
-                        NumberField(title: tr("Neues Bruttogehalt (€)"), value: $m.inputs.crossoverNewGross, info: Info.crossoverSalary,
+                    VStack(alignment: .leading, spacing: 8) {
+                        SliderField(title: tr("Neues Bruttogehalt (€)"), value: $m.inputs.crossoverNewGross,
+                                    range: model.inputs.crossoverPerYear ? 0.0...180_000.0 : 0.0...15_000.0,
+                                    step: model.inputs.crossoverPerYear ? 1_000 : 100,
+                                    info: Info.crossoverSalary, suffix: "€",
                                     hint: tr("Monatl. Netto-Einbuße: \(Fmt.eur(r.crossMonthlyLoss)) / Mo"))
-                        Picker(tr("Zeitraum"), selection: $m.inputs.crossoverPerYear) {
+                        Picker(tr("Zeitraum"), selection: Binding(
+                            get: { model.inputs.crossoverPerYear },
+                            set: { perYear in
+                                // keep the same salary when switching between monthly and yearly
+                                if perYear != model.inputs.crossoverPerYear {
+                                    let v = model.inputs.crossoverNewGross
+                                    model.inputs.crossoverNewGross = (perYear ? v * 12 : v / 12).rounded()
+                                    model.inputs.crossoverPerYear = perYear
+                                }
+                            })) {
                             Text(tr("/ Monat")).tag(false)
                             Text(tr("/ Jahr")).tag(true)
                         }.pickerStyle(.segmented)
                     }
-                    IntField(title: tr("Job-Start (Monate nach Austritt)"), value: $m.inputs.crossoverDelayMonths,
-                             info: Info.crossoverDelay,
-                             hint: model.inputs.crossoverDelayMonths == 0 ? tr("0 Mon. = Direkter Wechsel ohne Lücke")
-                                   : tr("Job-Start \(monthLabel((r.crossStd?.jobStartM ?? 0))) (Standard)"))
-                    NumberField(title: tr("Gehaltswachstum p.a. (Alt & Neu %)"), value: $m.inputs.crossoverGrowth,
-                                info: Info.crossoverGrowth, hint: tr("Symmetrisches Wachstum p.a."))
+                    SliderField(title: tr("Job-Start (Monate nach Austritt)"), value: $m.inputs.crossoverDelayMonths.asDouble,
+                                range: 0...36, step: 1, info: Info.crossoverDelay,
+                                displayText: { v in tr("\(Int(v)) Mon.") },
+                                hint: model.inputs.crossoverDelayMonths == 0 ? tr("0 Mon. = Direkter Wechsel ohne Lücke")
+                                      : tr("Job-Start \(monthLabel((r.crossStd?.jobStartM ?? 0))) (Standard)"))
+                    SliderField(title: tr("Gehaltswachstum p.a. (Alt & Neu %)"), value: $m.inputs.crossoverGrowth,
+                                range: 0...10, step: 0.5, info: Info.crossoverGrowth, suffix: "%", decimals: 1,
+                                hint: tr("Symmetrisches Wachstum p.a."))
                     }
                 }
 

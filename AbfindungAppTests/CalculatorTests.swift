@@ -155,6 +155,7 @@ final class CalculatorTests: XCTestCase {
     func testScenario_Nachzahlung() {
         var i = scenario()
         i.agFiktivGehalt = 0
+        i.agFiktivAuto = false
         i.kinder = 0
         let r = Calculator.compute(i)
         eur(r.netVoll, 95395, "Sofort-Netto")
@@ -202,6 +203,7 @@ final class CalculatorTests: XCTestCase {
         i.fristMonate = 6
         i.isTurbo = true
         i.agFiktivGehalt = 180000
+        i.agFiktivAuto = false
         i.optEnabled = true
         i.bav = 50500
         let r = Calculator.compute(i)
@@ -280,6 +282,7 @@ final class CalculatorTests: XCTestCase {
     func testNachzahlungIsNotHidden() {
         var i = Inputs()
         i.agFiktivGehalt = 0
+        i.agFiktivAuto = false
         i.kinder = 0
         XCTAssertLessThan(Calculator.compute(i).erstattung, 0)
     }
@@ -401,5 +404,24 @@ final class CalculatorTests: XCTestCase {
         model.isPro = false
         XCTAssertNil(model.results.runwayStd)
         XCTAssertNil(model.results.crossStd)
+    }
+
+    // MARK: Automatic employer salary
+
+    func testNotionalEmployerSalaryFollowsMonthlySalary() {
+        var auto = Inputs()
+        auto.altesMonatsgehalt = 10_000
+        var manual = auto
+        manual.agFiktivAuto = false
+        manual.agFiktivGehalt = 120_000
+        var stale = auto
+        stale.agFiktivAuto = false
+        stale.agFiktivGehalt = 84_000
+        let a = Calculator.compute(auto)
+        let m = Calculator.compute(manual)
+        let s = Calculator.compute(stale)
+        XCTAssertEqual(a.netVoll, m.netVoll, accuracy: 0.5)
+        XCTAssertEqual(a.erstattung, m.erstattung, accuracy: 0.5)
+        XCTAssertNotEqual(a.netVoll, s.netVoll)   // a stale 84.000 € would give a different withholding
     }
 }

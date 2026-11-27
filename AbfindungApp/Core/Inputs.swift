@@ -20,6 +20,8 @@ struct Inputs: Codable, Equatable {
     var fristMonate = 5
     var bruttoAbfindung = 150_000.0
     var neuesGehalt = 0.0
+    /// true: notional employer salary = 12 × monthly salary (default); false: use `agFiktivGehalt`.
+    var agFiktivAuto = true
     var agFiktivGehalt = 84_000.0
     var zusatzbeitrag = 2.9
     var preExitGkvPflicht = true

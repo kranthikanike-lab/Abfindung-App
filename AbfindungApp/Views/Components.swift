@@ -148,6 +148,71 @@ struct NumberField: View {
     }
 }
 
+extension Binding where Value == Int {
+    /// Int binding as Double, e.g. for sliders.
+    var asDouble: Binding<Double> {
+        Binding<Double>(get: { Double(wrappedValue) }, set: { wrappedValue = Int($0.isFinite ? $0.rounded() : 0) })
+    }
+}
+
+/// Slider with a tappable value: drag for quick changes, tap the number to type an exact value.
+/// The slider range grows when a larger value is typed, so typed values are never clipped.
+struct SliderField: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double = 1
+    var info: InfoText? = nil
+    var suffix: String = ""
+    var decimals: Int = 0
+    /// Read-only value text instead of a typing field (e.g. month names).
+    var displayText: ((Double) -> String)? = nil
+    var hint: String? = nil
+
+    private var upper: Double {
+        max(range.upperBound, (max(value, 0) / step).rounded(.up) * step)
+    }
+
+    private func label(_ v: Double) -> String {
+        suffix == "€" ? Fmt.eur(v) : Fmt.decimal(v, digits: decimals) + (suffix.isEmpty ? "" : " " + suffix)
+    }
+
+    private var valueField: some View {
+        HStack(spacing: 4) {
+            TextField("0", value: $value, format: .number.precision(.fractionLength(0...max(decimals, 0))))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 70, maxWidth: 120)
+            if !suffix.isEmpty { Text(suffix).foregroundStyle(.secondary) }
+        }
+        .font(.subheadline.weight(.bold))
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(Theme.field, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                FieldLabel(title: title, info: info)
+                if let displayText {
+                    Text(displayText(value)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.accent)
+                } else {
+                    valueField
+                }
+            }
+            Slider(value: Binding(get: { min(max(value, range.lowerBound), upper) }, set: { value = $0 }),
+                   in: range.lowerBound...upper, step: step)
+            HStack {
+                Text(displayText == nil ? label(range.lowerBound) : displayText!(range.lowerBound))
+                Spacer()
+                Text(displayText == nil ? label(upper) : displayText!(upper))
+            }
+            .font(.caption2).foregroundStyle(.secondary)
+            if let hint { Hint(hint) }
+        }
+    }
+}
+
 struct IntField: View {
     let title: String
     @Binding var value: Int

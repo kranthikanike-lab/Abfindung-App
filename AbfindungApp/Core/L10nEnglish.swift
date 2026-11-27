@@ -347,5 +347,12 @@ enum L10n {
         "Beispiel: Eine Seite mit Abfindung, Abzügen, Netto, Erstattung und Kontostand.": "Example: one page with Abfindung, deductions, net, refund and account balance.",
         "Hinweis: Die Erläuterungstexte sind derzeit nur auf Deutsch verfügbar.": "Note: the explanatory texts are currently available in German only.",
         "Sprache / Language": "Sprache / Language",
+        "Automatisch (12 × Monatsgehalt)": "Automatic (12 × monthly salary)",
+        "Neues Gehalt 2027 (Jahresbetrag, Brutto €)": "New salary 2027 (annual amount, gross €)",
+        "Gesamtes Brutto aus dem neuen Job, das 2027 anfällt – als Jahresbetrag, nicht monatlich. Nur die Zeit NACH Austritt / Lücke zählt.": "Total gross from the new job that falls in 2027 – as an annual amount, not monthly. Only the time AFTER your exit / gap counts.",
+        "%@ Mon.": "%@ mo.",
+        "KV-Zusatzbeitrag (%)": "Health insurance surcharge (%)",
+        "Versicherungsstatus vor Austritt": "Insurance status before exit",
+        "Regler ziehen oder die Zahl antippen, um genau einzugeben.": "Drag the slider or tap the number to enter an exact value.",
     ]
 }
