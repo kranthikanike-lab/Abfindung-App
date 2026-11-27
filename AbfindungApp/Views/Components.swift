@@ -193,6 +193,44 @@ struct StepperField: View {
     }
 }
 
+/// Slider with the current value shown as text (no typing). For money amounts.
+struct AmountSlider: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double
+    var info: InfoText? = nil
+    var suffix: String = "€"
+    var hint: String? = nil
+
+    /// A value outside the range (e.g. from an earlier version) stays reachable.
+    private var upper: Double {
+        max(range.upperBound, (max(value, 0) / step).rounded(.up) * step)
+    }
+
+    private func text(_ v: Double) -> String {
+        suffix == "€" ? Fmt.eur(v) : Fmt.decimal(v, digits: 0) + " " + suffix
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                FieldLabel(title: title, info: info)
+                Text(text(value)).font(.subheadline.weight(.bold)).monospacedDigit().foregroundStyle(Theme.accent)
+            }
+            Slider(value: Binding(get: { min(max(value, range.lowerBound), upper) }, set: { value = $0 }),
+                   in: range.lowerBound...upper, step: step)
+            HStack {
+                Text(text(range.lowerBound))
+                Spacer()
+                Text(text(upper))
+            }
+            .font(.caption2).foregroundStyle(.secondary)
+            if let hint { Hint(hint) }
+        }
+    }
+}
+
 struct IntField: View {
     let title: String
     @Binding var value: Int

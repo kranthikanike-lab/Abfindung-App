@@ -43,8 +43,9 @@ struct InputsView: View {
     private func coreCard(m: Bindable<AppModel>, r: Results) -> some View {
         Card(title: tr("A. Basis-Parameter & Einkommen 2027"),
              subtitle: tr("Annahme: Einmal-Auszahlung in einer Gehaltsabrechnung 2027 (§ 34 EStG Zusammenballung)")) {
-            NumberField(title: tr("Reguläres Brutto-Monatsgehalt (€)"), value: m.inputs.altesMonatsgehalt,
-                        info: Info.altesGehalt, suffix: "€", hint: tr("Jahresbrutto: \(Fmt.eur(r.jahresBrutto))"))
+            AmountSlider(title: tr("Reguläres Brutto-Monatsgehalt (€)"), value: m.inputs.altesMonatsgehalt,
+                         range: 1_000...20_000, step: 100, info: Info.altesGehalt,
+                         hint: tr("Jahresbrutto: \(Fmt.eur(r.jahresBrutto))"))
 
             VStack(alignment: .leading, spacing: 6) {
                 FieldLabel(title: tr("Start Frist / Sprinter-Austritt 2027"), info: Info.startMonth)
@@ -61,11 +62,12 @@ struct InputsView: View {
                          range: 0...18, step: 1, info: Info.frist,
                          display: { v in tr("\(Int(v)) Mon.") },
                          hint: tr("Restlaufzeit ab Startmonat. Die Auszahlung wird immer in 2027 angenommen."))
-            NumberField(title: tr("Basis-Abfindung (Brutto €)"), value: m.inputs.bruttoAbfindung,
-                        info: Info.abfindung, suffix: "€", hint: tr("Ohne Sprinter-Prämie"))
-            NumberField(title: tr("Neues Gehalt 2027 (Jahresbetrag, Brutto €)"), value: m.inputs.neuesGehalt,
-                        info: Info.neuesGehalt, suffix: "€",
-                        hint: tr("Gesamtes Brutto aus dem neuen Job, das 2027 anfällt – als Jahresbetrag, nicht monatlich. Nur die Zeit NACH Austritt / Lücke zählt."))
+            AmountSlider(title: tr("Basis-Abfindung (Brutto €)"), value: m.inputs.bruttoAbfindung,
+                         range: 0...500_000, step: 5_000, info: Info.abfindung,
+                         hint: tr("Ohne Sprinter-Prämie"))
+            AmountSlider(title: tr("Neues Gehalt 2027 (Jahresbetrag, Brutto €)"), value: m.inputs.neuesGehalt,
+                         range: 0...200_000, step: 5_000, info: Info.neuesGehalt,
+                         hint: tr("Gesamtes Brutto aus dem neuen Job, das 2027 anfällt – als Jahresbetrag, nicht monatlich. Nur die Zeit NACH Austritt / Lücke zählt."))
 
             VStack(alignment: .leading, spacing: 8) {
                 Toggle(tr("Automatisch (12 × Monatsgehalt)"), isOn: m.inputs.agFiktivAuto).font(.subheadline)
@@ -76,8 +78,9 @@ struct InputsView: View {
                     }
                     Hint(tr("Basis für Lohnsteuer-Einbehalt"))
                 } else {
-                    NumberField(title: tr("Fiktives AG-Jahresgehalt (€)"), value: m.inputs.agFiktivGehalt,
-                                info: Info.agFiktiv, suffix: "€", hint: tr("Basis für Lohnsteuer-Einbehalt"))
+                    AmountSlider(title: tr("Fiktives AG-Jahresgehalt (€)"), value: m.inputs.agFiktivGehalt,
+                                 range: 0...300_000, step: 2_500, info: Info.agFiktiv,
+                                 hint: tr("Basis für Lohnsteuer-Einbehalt"))
                 }
             }
 
@@ -118,9 +121,9 @@ struct InputsView: View {
             }
 
             if model.inputs.splitting {
-                NumberField(title: tr("Brutto-Gehalt Partner/in 2027 (€)"), value: m.inputs.partnerGehalt,
-                            suffix: "€",
-                            hint: r.splitting.map { tr("Splitting-Vorteil bis ca. \(Fmt.eur($0.maxPartnerGross)) Partner-Brutto") })
+                AmountSlider(title: tr("Brutto-Gehalt Partner/in 2027 (€)"), value: m.inputs.partnerGehalt,
+                             range: 0...200_000, step: 2_500,
+                             hint: r.splitting.map { tr("Splitting-Vorteil bis ca. \(Fmt.eur($0.maxPartnerGross)) Partner-Brutto") })
                 if let s = r.splitting {
                     if s.advantage >= 0 {
                         Banner(text: tr("✅ **Splitting-Vorteil (+ \(Fmt.eur(s.advantage))):** Zusammenveranlagung ist bis ca. **\(Fmt.eur(s.maxPartnerGross))** Partner-Brutto günstiger als Einzelveranlagung."), color: Theme.success)

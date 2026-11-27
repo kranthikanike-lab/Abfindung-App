@@ -15,29 +15,30 @@ struct RunwayProContent: View {
                         Hint(tr("Einschalten, um Reichweite, Lebensphasen und Konto-Verlauf zu berechnen."))
                     }
                     if model.inputs.runwayEnabled {
-                    NumberField(title: tr("Monatl. Netto-Ausgaben (ohne GKV, €)"), value: $m.inputs.runwayExpenses,
-                                suffix: "€", hint: tr("Private Lebenshaltungskosten"))
+                    AmountSlider(title: tr("Monatl. Netto-Ausgaben (ohne GKV, €)"), value: $m.inputs.runwayExpenses,
+                                 range: 500...10_000, step: 100, hint: tr("Private Lebenshaltungskosten"))
                     StepperField(title: tr("Gesamter ALG-1 Anspruch (Monate)"), value: $m.inputs.runwayAlg1Months.asDouble,
                                  range: 0...24, step: 1,
                                  display: { v in tr("\(Int(v)) Mon.") },
                                  hint: tr("Sprinter: \(r.runwaySpr?.algMonths ?? 0)M (inkl. Sperrzeit) | Std: \(r.runwayStd?.algMonths ?? 0)M"))
-                    NumberField(title: tr("Sofort-Abfluss 2027 (€)"), value: $m.inputs.runwayUpfrontSpend,
-                                suffix: "€", hint: tr("Einmalausgabe / Tilgung / Rücklage"))
+                    AmountSlider(title: tr("Sofort-Abfluss 2027 (€)"), value: $m.inputs.runwayUpfrontSpend,
+                                 range: 0...200_000, step: 5_000, hint: tr("Einmalausgabe / Tilgung / Rücklage"))
                     VStack(alignment: .leading, spacing: 6) {
                         FieldLabel(title: tr("GKV-Status nach ALG 1"), info: Info.runwayGkv)
                         Picker("GKV", selection: $m.inputs.runwayGkvMode) {
                             ForEach(GkvMode.allCases) { Text($0.label).tag($0) }
                         }.pickerStyle(.menu)
                         if model.inputs.runwayGkvMode == .custom {
-                            NumberField(title: tr("Individueller GKV-Beitrag"), value: $m.inputs.runwayCustomGkv, suffix: "€/Mo")
+                            AmountSlider(title: tr("Individueller GKV-Beitrag"), value: $m.inputs.runwayCustomGkv,
+                                         range: 0...1_500, step: 10, suffix: "€/Mo")
                         }
                     }
                     StepperField(title: tr("Real-Zins / Inflation p.a. (%)"), value: $m.inputs.runwayRealReturn,
                                  range: -5...8, step: 0.5, info: Info.realReturn, decimals: 1, suffix: "%",
                                  hint: tr("Rendite nach Steuer minus Inflation"))
-                    NumberField(title: tr("Minijob nach Austritt (€/Mo)"), value: $m.inputs.runwayMinijob,
-                                info: Info.minijob, suffix: "€",
-                                hint: model.inputs.runwayMinijob > 0
+                    AmountSlider(title: tr("Minijob nach Austritt (€/Mo)"), value: $m.inputs.runwayMinijob,
+                                 range: 0...556, step: 10, info: Info.minijob,
+                                 hint: model.inputs.runwayMinijob > 0
                                 ? tr("Während ALG 1: +\(Fmt.eur(min(165, model.inputs.runwayMinijob)))/Mo frei | Nach ALG 1: +\(Fmt.eur(model.inputs.runwayMinijob))/Mo voll")
                                 : tr("Steuer- & GKV-frei (während ALG 1 max. 165 € frei)"))
                     Toggle(tr("Netto-Gehalt minus Ausgaben ansparen (Gehalts-Überschuss 2027)"), isOn: $m.inputs.runwayIncludeSalarySavings).font(.subheadline)
@@ -115,9 +116,11 @@ struct CrossoverProContent: View {
                     }
                     if model.inputs.crossoverEnabled {
                     VStack(alignment: .leading, spacing: 8) {
-                        NumberField(title: tr("Neues Bruttogehalt (€)"), value: $m.inputs.crossoverNewGross,
-                                    info: Info.crossoverSalary, suffix: "€",
-                                    hint: tr("Monatl. Netto-Einbuße: \(Fmt.eur(r.crossMonthlyLoss)) / Mo"))
+                        AmountSlider(title: tr("Neues Bruttogehalt (€)"), value: $m.inputs.crossoverNewGross,
+                                     range: model.inputs.crossoverPerYear ? 0.0...180_000.0 : 0.0...15_000.0,
+                                     step: model.inputs.crossoverPerYear ? 1_000 : 100,
+                                     info: Info.crossoverSalary,
+                                     hint: tr("Monatl. Netto-Einbuße: \(Fmt.eur(r.crossMonthlyLoss)) / Mo"))
                         Picker(tr("Zeitraum"), selection: Binding(
                             get: { model.inputs.crossoverPerYear },
                             set: { perYear in
