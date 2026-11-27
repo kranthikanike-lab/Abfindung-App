@@ -92,7 +92,7 @@ struct ResultsView: View {
         .background(Theme.pageBackground)
         .navigationTitle(tr("Ergebnis"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { AppToolbar() }
+        .toolbar { AppToolbar(tab: .results) }
         .themedBars()
     }
 }

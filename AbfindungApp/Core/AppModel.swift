@@ -1,7 +1,7 @@
 import SwiftUI
 import Observation
 
-enum AppTab: Hashable { case inputs, results, runway, crossover }
+enum AppTab: Hashable, CaseIterable { case inputs, optimization, results, runway, crossover }
 
 @Observable
 final class AppModel {
@@ -125,7 +125,7 @@ final class AppModel {
             inputs.bav = 42_480
             let probe = Calculator.compute(inputs)
             inputs.ruerup = Self.snap(probe.ruerupSweetSpot, step: 250, max: jsRound(probe.maxRuerup))
-            selectedTab = .inputs
+            selectedTab = .optimization
         case .runwayCheck:
             inputs.isTurbo = true
             setOptEnabled(false)

@@ -1,7 +1,7 @@
 import Foundation
 
 /// English texts. Keys are the German texts used in the code; "%@" marks an interpolated value (same order in both languages).
-/// Explanatory tooltips and the legal/assumption texts are intentionally not translated yet.
+/// The long "?" explanations and the legal/assumption texts are intentionally not translated yet.
 enum L10n {
     static let en: [String: String] = [
         "System": "System",
@@ -353,6 +353,11 @@ enum L10n {
         "%@ Mon.": "%@ mo.",
         "KV-Zusatzbeitrag (%)": "Health insurance surcharge (%)",
         "Versicherungsstatus vor Austritt": "Insurance status before exit",
-        "Regler ziehen oder die Zahl antippen, um genau einzugeben.": "Drag the slider or tap the number to enter an exact value.",
+        "Steuer": "Tax",
+        "**Hier beschreiben Sie Ihre Ausgangslage.**\n\nGehalt, Start des Austritts, Kündigungsfrist, Abfindung und Familienmerkmale bestimmen die Steuer auf die Abfindung. Die **Sprinter-Option** vergleicht, was ein früherer Austritt gegenüber dem Absitzen der Kündigungsfrist bringt.\n\nDie wichtigsten Ergebnisse sehen Sie sofort in der Leiste unten, Details im Tab „Ergebnis“.": "**Describe your starting situation here.**\n\nSalary, exit start, notice period, Abfindung and family details determine the tax on your Abfindung. The **Sprinter option** compares what an earlier exit brings versus serving the notice period.\n\nThe key results appear immediately in the bar at the bottom, details are in the “Results” tab.",
+        "**Hebel, um die Steuer auf die Abfindung zu senken.**\n\nbAV-Einzahlung, Rentenausgleich an die DRV (V0210), Rürup und gewerblicher PV-IAB. Jeder Regler zeigt die Ersparnis und welcher Teil sofort und welcher erst mit der Steuererklärung im Oktober 2028 wirkt.\n\nSchalten Sie die Optimierung oben ein. Das ist eine Pro-Funktion.": "**Levers to reduce the tax on your Abfindung.**\n\nbAV contribution, pension deduction offset to the DRV (V0210), Rürup and commercial PV IAB. Each slider shows the saving and which part takes effect immediately and which only with the tax return in October 2028.\n\nSwitch the optimization on at the top. This is a Pro feature.",
+        "**Was am Ende von der Abfindung bleibt.**\n\n„Sofort-Netto“ ist die Auszahlung nach dem Lohnsteuer-Einbehalt. „Optimal-Netto“ ist das Ergebnis nach der Steuererklärung (Fünftelregelung). Dazu kommen der Kontostand Ende 2028, Diagramme und die drei Rechentabellen.": "**What is left of your Abfindung in the end.**\n\n“Immediate net” is the payout after Lohnsteuer withholding. “Optimal net” is the result after the tax return (Fünftelregelung). You also get the account balance at the end of 2028, charts and the three calculation tables.",
+        "**Wie lange reicht das Geld ohne neuen Job?**\n\nVergleicht „Frist absitzen“ (Standard) mit „früher gehen“ (Sprinter): Gehalt, Ruhenszeit, ALG 1, Krankenversicherung und Ihre Ausgaben. Die Diagramme zeigen den Zeitstrahl und den Kontostand je Monat.\n\nSchalten Sie die Berechnung oben ein. Das ist eine Pro-Funktion.": "**How long does the money last without a new job?**\n\nCompares “serve the notice period” (Standard) with “leave earlier” (Sprinter): salary, Ruhenszeit, ALG 1, health insurance and your spending. The charts show the timeline and the account balance per month.\n\nSwitch the calculation on at the top. This is a Pro feature.",
+        "**Neuer Job mit weniger Gehalt: ab wann ist der Vorsprung aus der Abfindung aufgebraucht?**\n\nDer Break-Even zeigt, wann das Plus aus der Abfindung durch das geringere Gehalt aufgebraucht ist, für Standard und Sprinter. Austritt, Ausgaben und ALG 1 kommen aus dem Tab „Reichweite“.\n\nSchalten Sie die Berechnung oben ein. Das ist eine Pro-Funktion.": "**New job with a lower salary: when is the advantage from the Abfindung used up?**\n\nThe break-even shows when the surplus from the Abfindung is used up by the lower salary, for Standard and Sprinter. Exit, spending and ALG 1 come from the “Runway” tab.\n\nSwitch the calculation on at the top. This is a Pro feature.",
     ]
 }

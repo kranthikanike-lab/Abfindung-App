@@ -328,6 +328,7 @@ final class CalculatorTests: XCTestCase {
         XCTAssertTrue(model.inputs.isTurbo)
         XCTAssertTrue(model.inputs.optEnabled)
         XCTAssertGreaterThan(model.inputs.ruerup, 0)
+        XCTAssertEqual(model.selectedTab, .optimization)
     }
 
     // MARK: Basic / Pro

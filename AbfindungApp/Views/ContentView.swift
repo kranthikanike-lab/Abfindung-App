@@ -11,6 +11,9 @@ struct ContentView: View {
             NavigationStack { InputsView() }
                 .tabItem { Label(tr("Eingaben"), systemImage: "slider.horizontal.3") }
                 .tag(AppTab.inputs)
+            NavigationStack { OptimizationView() }
+                .tabItem { Label(tr("Steuer"), systemImage: "percent") }
+                .tag(AppTab.optimization)
             NavigationStack { ResultsView() }
                 .tabItem { Label(tr("Ergebnis"), systemImage: "chart.pie") }
                 .tag(AppTab.results)

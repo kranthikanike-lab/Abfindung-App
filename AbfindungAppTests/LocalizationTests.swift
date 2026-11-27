@@ -68,4 +68,17 @@ final class LocalizationTests: XCTestCase {
         Lang.shared.code = "de"
         XCTAssertEqual(Feature.taxOptimization.title, "Steuer-Optimierung")
     }
+
+    func testEveryTabHasAnInfoTextInBothLanguages() {
+        for tab in AppTab.allCases {
+            Lang.shared.code = "de"
+            let germanTitle = TabInfo.title(tab), germanText = TabInfo.text(tab)
+            XCTAssertFalse(germanTitle.isEmpty)
+            XCTAssertFalse(germanText.isEmpty)
+            Lang.shared.code = "en"
+            XCTAssertNotEqual(TabInfo.title(tab), "", "\(tab)")
+            XCTAssertNotEqual(TabInfo.text(tab), germanText, "English text missing for \(tab)")
+        }
+        XCTAssertEqual(AppTab.allCases.count, 5)
+    }
 }

@@ -8,6 +8,9 @@ enum ThemeChoice: String, CaseIterable, Identifiable {
 }
 
 struct AppToolbar: ToolbarContent {
+    let tab: AppTab
+
+    init(tab: AppTab) { self.tab = tab }
     @Environment(AppModel.self) private var model
     @AppStorage("abfindungs_optimizer_theme_v2") private var themeRaw = ThemeChoice.system.rawValue
 
@@ -21,6 +24,9 @@ struct AppToolbar: ToolbarContent {
                     Button("↺ Reset", role: .destructive) { model.apply(.reset) }
                 }
             } label: { Image(systemName: "bolt.circle") }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            TabInfoButton(tab: tab)
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
@@ -224,5 +230,30 @@ struct UnlockSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button(tr("Schließen")) { dismiss() } } }
         }
+    }
+}
+
+
+/// "i" button in the navigation bar: explains what the current tab represents.
+struct TabInfoButton: View {
+    let tab: AppTab
+    @State private var show = false
+
+    var body: some View {
+        Button { show = true } label: { Image(systemName: "info.circle") }
+            .accessibilityLabel(TabInfo.title(tab))
+            .sheet(isPresented: $show) {
+                NavigationStack {
+                    ScrollView {
+                        Text(LocalizedStringKey(TabInfo.text(tab)))
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .navigationTitle(TabInfo.title(tab))
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button(tr("Fertig")) { show = false } } }
+                }
+                .presentationDetents([.medium, .large])
+            }
     }
 }

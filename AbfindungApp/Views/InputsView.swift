@@ -9,7 +9,6 @@ private var kinderOptions: [(Double, String)] { [
 
 struct InputsView: View {
     @Environment(AppModel.self) private var model
-    @State private var showDrv = false
 
     var body: some View {
         @Bindable var m = model
@@ -18,11 +17,6 @@ struct InputsView: View {
             VStack(spacing: 14) {
                 coreCard(m: $m, r: r)
                 sprinterCard(m: $m, r: r)
-                if model.isPro {
-                    optimizationCard(m: $m, r: r)
-                } else {
-                    ProLockedCard(feature: .taxOptimization)
-                }
             }
             .padding(.horizontal, Theme.pageMargin)
             .padding(.vertical, 12)
@@ -32,10 +26,9 @@ struct InputsView: View {
         .background(Theme.pageBackground)
         .navigationTitle("Abfindungs-Optimizer")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { AppToolbar() }
+        .toolbar { AppToolbar(tab: .inputs) }
         .themedBars()
         .safeAreaInset(edge: .bottom) { StickyKPIBar() }
-        .sheet(isPresented: $showDrv) { DrvDeficitSheet() }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -50,25 +43,28 @@ struct InputsView: View {
     private func coreCard(m: Bindable<AppModel>, r: Results) -> some View {
         Card(title: tr("A. Basis-Parameter & Einkommen 2027"),
              subtitle: tr("Annahme: Einmal-Auszahlung in einer Gehaltsabrechnung 2027 (§ 34 EStG Zusammenballung)")) {
-            Hint(tr("Regler ziehen oder die Zahl antippen, um genau einzugeben."))
-            SliderField(title: tr("Reguläres Brutto-Monatsgehalt (€)"), value: m.inputs.altesMonatsgehalt,
-                        range: 1_000...20_000, step: 100, info: Info.altesGehalt, suffix: "€",
-                        hint: tr("Jahresbrutto: \(Fmt.eur(r.jahresBrutto))"))
+            NumberField(title: tr("Reguläres Brutto-Monatsgehalt (€)"), value: m.inputs.altesMonatsgehalt,
+                        info: Info.altesGehalt, suffix: "€", hint: tr("Jahresbrutto: \(Fmt.eur(r.jahresBrutto))"))
 
-            SliderField(title: tr("Start Frist / Sprinter-Austritt 2027"), value: m.inputs.startMonth.asDouble,
-                        range: 1...12, step: 1, info: Info.startMonth,
-                        displayText: { v in monthNames[min(max(Int(v), 1), 12) - 1] + " 2027" },
-                        hint: tr("Sprinter: \(r.salMonthsSpr)M Gehalt | Standard: \(r.salMonthsStd)M Gehalt"))
+            VStack(alignment: .leading, spacing: 6) {
+                FieldLabel(title: tr("Start Frist / Sprinter-Austritt 2027"), info: Info.startMonth)
+                Picker(tr("Startmonat"), selection: m.inputs.startMonth) {
+                    ForEach(1...12, id: \.self) { n in
+                        Text(tr("\(monthNames[n - 1]) 2027 (\(n - 1) Mon. Vor-Gehalt)")).tag(n)
+                    }
+                }
+                .pickerStyle(.menu)
+                Hint(tr("Sprinter: \(r.salMonthsSpr)M Gehalt | Standard: \(r.salMonthsStd)M Gehalt"))
+            }
 
-            SliderField(title: tr("Kündigungsfrist (Monate)"), value: m.inputs.fristMonate.asDouble,
-                        range: 0...18, step: 1, info: Info.frist,
-                        displayText: { v in tr("\(Int(v)) Mon.") },
-                        hint: tr("Restlaufzeit ab Startmonat. Die Auszahlung wird immer in 2027 angenommen."))
-            SliderField(title: tr("Basis-Abfindung (Brutto €)"), value: m.inputs.bruttoAbfindung,
-                        range: 0...500_000, step: 1_000, info: Info.abfindung, suffix: "€",
-                        hint: tr("Ohne Sprinter-Prämie"))
-            SliderField(title: tr("Neues Gehalt 2027 (Jahresbetrag, Brutto €)"), value: m.inputs.neuesGehalt,
-                        range: 0...200_000, step: 1_000, info: Info.neuesGehalt, suffix: "€",
+            StepperField(title: tr("Kündigungsfrist (Monate)"), value: m.inputs.fristMonate.asDouble,
+                         range: 0...18, step: 1, info: Info.frist,
+                         display: { v in tr("\(Int(v)) Mon.") },
+                         hint: tr("Restlaufzeit ab Startmonat. Die Auszahlung wird immer in 2027 angenommen."))
+            NumberField(title: tr("Basis-Abfindung (Brutto €)"), value: m.inputs.bruttoAbfindung,
+                        info: Info.abfindung, suffix: "€", hint: tr("Ohne Sprinter-Prämie"))
+            NumberField(title: tr("Neues Gehalt 2027 (Jahresbetrag, Brutto €)"), value: m.inputs.neuesGehalt,
+                        info: Info.neuesGehalt, suffix: "€",
                         hint: tr("Gesamtes Brutto aus dem neuen Job, das 2027 anfällt – als Jahresbetrag, nicht monatlich. Nur die Zeit NACH Austritt / Lücke zählt."))
 
             VStack(alignment: .leading, spacing: 8) {
@@ -80,15 +76,14 @@ struct InputsView: View {
                     }
                     Hint(tr("Basis für Lohnsteuer-Einbehalt"))
                 } else {
-                    SliderField(title: tr("Fiktives AG-Jahresgehalt (€)"), value: m.inputs.agFiktivGehalt,
-                                range: 0...300_000, step: 1_000, info: Info.agFiktiv, suffix: "€",
-                                hint: tr("Basis für Lohnsteuer-Einbehalt"))
+                    NumberField(title: tr("Fiktives AG-Jahresgehalt (€)"), value: m.inputs.agFiktivGehalt,
+                                info: Info.agFiktiv, suffix: "€", hint: tr("Basis für Lohnsteuer-Einbehalt"))
                 }
             }
 
-            SliderField(title: tr("KV-Zusatzbeitrag (%)"), value: m.inputs.zusatzbeitrag,
-                        range: 0...6, step: 0.1, info: Info.gkv, suffix: "%", decimals: 1,
-                        hint: tr("GKV-Höchstsatz: ~\(Fmt.eur(r.gkvHoechst))/Mo"))
+            StepperField(title: tr("KV-Zusatzbeitrag (%)"), value: m.inputs.zusatzbeitrag,
+                         range: 0...6, step: 0.1, info: Info.gkv, decimals: 1, suffix: "%",
+                         hint: tr("GKV-Höchstsatz: ~\(Fmt.eur(r.gkvHoechst))/Mo"))
             VStack(alignment: .leading, spacing: 6) {
                 FieldLabel(title: tr("Versicherungsstatus vor Austritt"), info: Info.gkv)
                 Picker("Status", selection: m.inputs.preExitGkvPflicht) {
@@ -97,11 +92,13 @@ struct InputsView: View {
                 }.pickerStyle(.segmented)
             }
 
-            SliderField(title: tr("Kinder (Freibetrag)"),
-                        value: Binding(get: { model.inputs.kinder }, set: { model.setKinder($0) }),
-                        range: 0...3, step: 0.5, info: Info.kinder,
-                        displayText: { v in kinderOptions.first(where: { $0.0 == v })?.1 ?? Fmt.decimal(v) },
-                        hint: tr("KFB: \(Fmt.eur(r.kfb)) vs. KG: \(Fmt.eur(r.kg))"))
+            VStack(alignment: .leading, spacing: 6) {
+                FieldLabel(title: tr("Kinder (Freibetrag)"), info: Info.kinder)
+                Picker(tr("Kinder"), selection: Binding(get: { model.inputs.kinder }, set: { model.setKinder($0) })) {
+                    ForEach(kinderOptions, id: \.0) { Text($0.1).tag($0.0) }
+                }.pickerStyle(.menu)
+                Hint(tr("KFB: \(Fmt.eur(r.kfb)) vs. KG: \(Fmt.eur(r.kg))"))
+            }
 
             VStack(alignment: .leading, spacing: 6) {
                 FieldLabel(title: tr("Kirchensteuer"), info: Info.kirchensteuer)
@@ -121,8 +118,8 @@ struct InputsView: View {
             }
 
             if model.inputs.splitting {
-                SliderField(title: tr("Brutto-Gehalt Partner/in 2027 (€)"), value: m.inputs.partnerGehalt,
-                            range: 0...200_000, step: 1_000, suffix: "€",
+                NumberField(title: tr("Brutto-Gehalt Partner/in 2027 (€)"), value: m.inputs.partnerGehalt,
+                            suffix: "€",
                             hint: r.splitting.map { tr("Splitting-Vorteil bis ca. \(Fmt.eur($0.maxPartnerGross)) Partner-Brutto") })
                 if let s = r.splitting {
                     if s.advantage >= 0 {
@@ -143,12 +140,12 @@ struct InputsView: View {
         let badge = on ? tr("Aktiv (\(r.sprinterNetDiff >= 0 ? "+" : "−")\(Fmt.eur(abs(r.sprinterNetDiff))) Netto-Bilanz)")
                        : tr("Inaktiv (Frist wird regulär abgesessen)")
         SectionToggle(title: tr("🚀 Vorzeitiger Austritt / Sprinter-Option"), badge: badge, isOn: m.inputs.isTurbo) {
-            SliderField(title: tr("Sprinter-Faktor (pro Monat)"), value: m.inputs.turboFaktor,
-                        range: 0...3, step: 0.1, info: Info.sprinterFaktor, suffix: "×", decimals: 1,
-                        hint: tr("Brutto-Prämie: + \(Fmt.eur(r.sprinterBruttoPraemie))"))
-            SliderField(title: tr("Anrechnungsanteil Ruhenszeit (%)"), value: m.inputs.ruhensAnteil,
-                        range: 25...60, step: 5, info: Info.ruhensAnteil, suffix: "%",
-                        hint: tr("Gesetzlich 25–60 %, 60 % = vorsichtig. Ruhenszeit: \(r.ruhensMonthsSprinter) Mon., Sperrzeit kürzt ALG 1 um \(r.sperrzeitMonths) Mon."))
+            StepperField(title: tr("Sprinter-Faktor (pro Monat)"), value: m.inputs.turboFaktor,
+                         range: 0...3, step: 0.1, info: Info.sprinterFaktor, decimals: 1, suffix: "×",
+                         hint: tr("Brutto-Prämie: + \(Fmt.eur(r.sprinterBruttoPraemie))"))
+            StepperField(title: tr("Anrechnungsanteil Ruhenszeit (%)"), value: m.inputs.ruhensAnteil,
+                         range: 25...60, step: 5, info: Info.ruhensAnteil, suffix: "%",
+                         hint: tr("Gesetzlich 25–60 %, 60 % = vorsichtig. Ruhenszeit: \(r.ruhensMonthsSprinter) Mon., Sperrzeit kürzt ALG 1 um \(r.sperrzeitMonths) Mon."))
             VStack(alignment: .leading, spacing: 6) {
                 FieldLabel(title: tr("ALG 1 Satz (Auto aus Brutto & Kinder)"), info: Info.alg1)
                 Picker("ALG 1", selection: m.inputs.alg1Satz) {
@@ -169,53 +166,6 @@ struct InputsView: View {
                 Banner(text: tr("⚠️ **Sprinter-Nachteil (− \(Fmt.eur(abs(diff)))):** Gehaltsverlust & Abzüge übersteigen Prämie & Steuer-Hebel."), color: Theme.danger)
             }
             SprinterDetails(r: r)
-        }
-    }
-
-    // MARK: B. Optimierung
-
-    @ViewBuilder
-    private func optimizationCard(m: Bindable<AppModel>, r: Results) -> some View {
-        let on = model.inputs.optEnabled
-        let badge = on ? tr("Aktiv (\(Fmt.eur(r.totalOptVolume)))") : tr("Minimiert (0 €)")
-        SectionToggle(title: tr("🎯 B. Steuer-Optimierung (bAV, DRV V0210, Rürup, PV-IAB)"), badge: badge,
-                      isOn: Binding(get: { model.inputs.optEnabled }, set: { model.setOptEnabled($0) })) {
-            SliderCard(title: tr("1. bAV-Einzahlung (§ 3 Nr. 63 EStG)"), info: Info.bav,
-                       valueText: Fmt.eur(r.bav),
-                       pill: r.bavSaving.amount > 0 ? tr("Sofort-Ersparnis: \(Fmt.eur(r.bavSaving.savings)) (\(Fmt.pct(r.bavSaving.percent)))") : nil,
-                       value: m.inputs.bav, range: 0...Const.maxBav, step: 500,
-                       hint: tr("Max. 50.976 € (42.480 € Vervielfältiger + 8.496 € 2027-Rahmen, Annahme: 0 € laufende bAV)."),
-                       explainLabel: r.bavSaving.amount > 0 ? tr("🛡️ Sofort-Steuerersparnis (2027 Lohnsteuer-Abzug):") : nil,
-                       explainValue: "\(Fmt.eur(r.bavSaving.savings)) (\(Fmt.pct(r.bavSaving.percent)))")
-
-            SliderCard(title: tr("2. AG-Direktzahlung DRV (§ 187a / V0210)"), info: Info.drv,
-                       valueText: Fmt.eur(r.drvRaw),
-                       pill: r.drvSaving.amount > 0 ? tr("Ersparnis: \(Fmt.eur(r.drvSaving.savings)) (\(Fmt.pct(r.drvSaving.percent)))") : nil,
-                       value: m.inputs.drv, range: 0...model.inputs.drvMax, step: 500,
-                       hint: tr("50 % steuerfrei (§ 3 Nr. 28 EStG: \(Fmt.eur(r.drvTaxFree))) ohne Rürup-Cap-Kürzung; 50 % Fünftelregelung."),
-                       extraAction: (tr("🎯 Defizit berechnen"), { showDrv = true }),
-                       explainLabel: r.drvSaving.amount > 0 ? tr("💡 Gesamt-Ersparnis (50% Sofort + 50% Fünftel):") : nil,
-                       explainValue: "\(Fmt.eur(r.drvSaving.savings)) (\(Fmt.pct(r.drvSaving.percent)))")
-
-            SliderCard(title: tr("3. Rürup / Basisrente (§ 10 Abs. 1 Nr. 2 EStG)"), info: Info.ruerup,
-                       valueText: Fmt.eur(r.ruerup),
-                       pill: r.ruerupSaving.amount > 0 ? tr("FA-Erstattung: \(Fmt.eur(r.ruerupSaving.savings)) (\(Fmt.pct(r.ruerupSaving.percent)))") : nil,
-                       value: m.inputs.ruerup, range: 0...max(1, jsRound(r.maxRuerup)), step: 250,
-                       hint: tr("Max. Cap 2027: \(Fmt.eur(r.maxRuerup)) (⚠️ Kapital dauerhaft gebunden)"),
-                       sweetTitle: tr("🎯 Cash-Plus Sweet-Spot (>100%): \(Fmt.eur(r.ruerupSweetSpot))"),
-                       sweetAction: { model.applyRuerupSweetSpot() },
-                       explainLabel: r.ruerupSaving.amount > 0 ? tr("💡 Steuer-Erstattung (Okt. 2028 FA):") : nil,
-                       explainValue: "\(Fmt.eur(r.ruerupSaving.savings)) (\(Fmt.pct(r.ruerupSaving.percent)))")
-
-            SliderCard(title: tr("4. Gewerbl. PV-IAB (§ 7g EStG — 50% Abzug)"), info: Info.iab,
-                       valueText: tr("\(Fmt.eur(r.iabInvest)) (Abzug: \(Fmt.eur(r.iab)))"),
-                       pill: r.iabSaving.amount > 0 ? tr("FA-Erstattung: \(Fmt.eur(r.iabSaving.savings)) (\(Fmt.pct(r.iabSaving.percent)))") : nil,
-                       value: m.inputs.iabInvest, range: 0...400_000, step: 2000,
-                       hint: tr("Kaufpreis bis 400.000 € → 50% IAB-Abzug in 2027"),
-                       sweetTitle: tr("🎯 IAB Sweet-Spot: \(Fmt.eur(r.iabSweetInvest)) (Abzug: \(Fmt.eur(r.iabSweetAbzug)))"),
-                       sweetAction: { model.applyIabSweetSpot() },
-                       explainLabel: r.iabSaving.amount > 0 ? tr("💡 Steuer-Erstattung auf Kaufpreis (Okt. 2028):") : nil,
-                       explainValue: "\(Fmt.eur(r.iabSaving.savings)) (\(Fmt.pct(r.iabSaving.percent)))")
         }
     }
 }
