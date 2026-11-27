@@ -156,14 +156,6 @@ extension Binding where Value == Int {
 }
 
 /// Label with the current value and a − / + stepper. For small numbers such as months or percentages.
-extension Binding where Value == Int {
-    /// Int binding as Double, e.g. for sliders.
-    var asDouble: Binding<Double> {
-        Binding<Double>(get: { Double(wrappedValue) }, set: { wrappedValue = Int($0.isFinite ? $0.rounded() : 0) })
-    }
-}
-
-/// Label with the current value and a − / + stepper. For small numbers such as months or percentages.
 struct StepperField: View {
     let title: String
     @Binding var value: Double
