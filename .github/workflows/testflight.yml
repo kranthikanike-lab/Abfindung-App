@@ -6,7 +6,7 @@ on:
 
 jobs:
   testflight:
-    runs-on: macos-26
+    runs-on: macos-26-intel
     env:
       BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
       TEAM_ID: ${{ secrets.TEAM_ID }}
